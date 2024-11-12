@@ -241,6 +241,77 @@ def download_dataset(dataset_id):
     return resp
 
 
+@dataset_bp.route("/dataset/download/all", methods=["GET"])
+def download_all_dataset():
+    user_cookie = request.cookies.get("download_cookie")
+    if not user_cookie:
+        user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
+
+        # Crear un directorio temporal para almacenar el archivo ZIP
+        temp_dir = tempfile.mkdtemp()
+
+        # Crear el archivo ZIP que contendrá todos los datasets
+        zip_path = os.path.join(temp_dir, "all_datasets.zip")
+        with ZipFile(zip_path, "w") as zipf:
+            # Obtener todos los datasets existentes (sin filtrar por usuario)
+            datasets = dataset_service.get_all()
+            # Iterar sobre todos los datasets y agregar sus archivos al ZIP
+            for dataset in datasets:
+                # Suponiendo que cada dataset tiene un archivo en una ruta conocida
+                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/data.csv"
+
+                # Verificar si el archivo existe antes de agregarlo
+                if os.path.exists(file_path):
+                    zipf.write(file_path, os.path.basename(file_path))
+                else:
+                    print(f"Archivo no encontrado para el dataset {dataset.id}")
+
+        # Crear la respuesta con el archivo ZIP
+        resp = make_response(
+            send_from_directory(
+                temp_dir,
+                "all_datasets.zip",
+                as_attachment=True,
+                mimetype="application/zip"
+            )
+        )
+
+        # Establecer la cookie "download_cookie" para que no se genere nuevamente
+        resp.set_cookie("download_cookie", user_cookie)
+
+    else:
+        # Si la cookie ya existe, simplemente enviar el archivo ZIP
+        temp_dir = tempfile.mkdtemp()
+
+        # Crear el archivo ZIP que contendrá todos los datasets
+        zip_path = os.path.join(temp_dir, "all_datasets.zip")
+        with ZipFile(zip_path, "w") as zipf:
+            # Obtener todos los datasets existentes
+            datasets = dataset_service.get_all()  # Asumiendo que dataset_service.get_all() devuelve todos los datasets
+
+            # Iterar sobre todos los datasets y agregar sus archivos al ZIP
+            for dataset in datasets:
+                # Suponiendo que cada dataset tiene un archivo en una ruta conocida
+                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/data.csv"
+
+                # Verificar si el archivo existe antes de agregarlo
+                if os.path.exists(file_path):
+                    zipf.write(file_path, os.path.basename(file_path))
+                else:
+                    print(f"Archivo no encontrado para el dataset {dataset.id}")
+
+        # Enviar el archivo ZIP como una respuesta de descarga
+        resp = send_from_directory(
+            temp_dir,
+            "all_datasets.zip",
+            as_attachment=True,
+            mimetype="application/zip"
+        )
+
+    # Devolver la respuesta con la cookie y el archivo ZIP
+    return resp
+
+
 @dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
 def subdomain_index(doi):
 

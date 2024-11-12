@@ -91,6 +91,9 @@ class DataSetService(BaseService):
 
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
+    
+    def get_all(self) -> list[DataSet]:
+        return self.repository.get_all()
 
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {
