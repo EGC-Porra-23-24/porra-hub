@@ -12,8 +12,8 @@ from flask_sqlalchemy import query
 class ExploreRepository(BaseRepository):
     def __init__(self):
         super().__init__(DataSet)
-      
-    def advanced_filter(self, query: query.Query, min_creation_date=None, max_creation_date=None, min_size=None, 
+
+    def advanced_filter(self, query: query.Query, min_creation_date=None, max_creation_date=None, min_size=None,
                         max_size=None, min_features=None, max_features=None, **kwargs):
         format = "%Y-%m-%d"
         if min_creation_date:
