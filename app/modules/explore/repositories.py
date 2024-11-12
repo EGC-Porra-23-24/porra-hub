@@ -1,14 +1,38 @@
 import re
-from sqlalchemy import any_, or_
+from datetime import datetime as dt, timedelta
+from sqlalchemy import any_, or_, func
 import unidecode
-from app.modules.dataset.models import Author, DSMetaData, DataSet, PublicationType
+from app.modules.dataset.models import Author, DSMetaData, DataSet, PublicationType, DSMetrics
 from app.modules.featuremodel.models import FMMetaData, FeatureModel
+from app.modules.hubfile.models import Hubfile
 from core.repositories.BaseRepository import BaseRepository
+from flask_sqlalchemy import query
 
 
 class ExploreRepository(BaseRepository):
     def __init__(self):
         super().__init__(DataSet)
+        
+    def advanced_filter(self, query:query.Query, min_creation_date=None, max_creation_date=None, min_size=None, max_size=None,
+                        min_features=None, max_features=None, **kwargs):
+        
+        format = "%Y-%m-%d"
+        if min_creation_date: 
+            min_creation_date = dt.strptime(min_creation_date, format).date().strftime(format)
+            query = query.filter(DataSet.created_at >= min_creation_date)
+        if max_creation_date: 
+            max_creation_date = (dt.strptime(max_creation_date, format).date() + timedelta(days=1)).strftime(format)
+            query = query.filter(DataSet.created_at <= max_creation_date)
+            
+        if min_features: query = query.filter(DSMetrics.number_of_features >= int(min_features))
+        if max_features: query = query.filter(DSMetrics.number_of_features <= int(max_features))
+        
+        query = query.group_by(DataSet.id)
+        
+        if min_size: query = query.having(func.sum(Hubfile.size) >= min_size)
+        if max_size: query = query.having(func.sum(Hubfile.size) <= max_size)
+        
+        return query
 
     def filter(self, query="", sorting="newest", publication_type="any", tags=[], **kwargs):
         # Normalize and remove unwanted characters
@@ -35,6 +59,8 @@ class ExploreRepository(BaseRepository):
             .join(DSMetaData.authors)
             .join(DataSet.feature_models)
             .join(FeatureModel.fm_meta_data)
+            .join(FeatureModel.files)
+            .join(DSMetaData.ds_metrics)
             .filter(or_(*filters))
             .filter(DSMetaData.dataset_doi.isnot(None))  # Exclude datasets with empty dataset_doi
         )
@@ -51,6 +77,8 @@ class ExploreRepository(BaseRepository):
 
         if tags:
             datasets = datasets.filter(DSMetaData.tags.ilike(any_(f"%{tag}%" for tag in tags)))
+
+        datasets = self.advanced_filter(datasets, **kwargs)
 
         # Order by created_at
         if sorting == "oldest":
