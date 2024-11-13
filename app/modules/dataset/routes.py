@@ -127,6 +127,7 @@ def list_dataset():
 @login_required
 def upload():
     file = request.files["file"]
+    print(file.filename)
     temp_folder = current_user.temp_folder()
 
     if not file or not file.filename.endswith(".uvl"):
@@ -233,41 +234,38 @@ def create_from_github():
 @dataset_bp.route("/dataset/upload/file/github", methods=["GET", "POST"])
 @login_required 
 def upload_from_github():  
-        if request.method == 'POST':
-            github_url = request.json.get('github_url')
-            print(github_url)
+    github_url = request.json.get('github_url')
 
-        if not github_url:
-            return jsonify({'success': False, 'message': 'GitHub URL is required'}), 400
+    if not github_url:
+        return jsonify({'success': False, 'message': 'GitHub URL is required'}), 400
 
-        if not github_url.startswith("https://github.com/"):
-            return jsonify({'success': False, 'message': 'Invalid GitHub URL'}), 400
+    # Verificar que la URL sea válida
+    if not github_url.startswith("https://github.com/"):
+        return jsonify({'success': False, 'message': 'Invalid GitHub URL'}), 400
 
-        if not (github_url.endswith('.zip') or github_url.endswith('.uvl')):
-            return jsonify({'success': False, 'message': 'Invalid file type. Only .zip or .uvl are allowed'}), 400
-        
+    # Validar que el archivo sea de tipo .zip o .uvl
+    if not (github_url.endswith('.zip') or github_url.endswith('.uvl')):
+        return jsonify({'success': False, 'message': 'Invalid file type. Only .zip and .uvl are allowed'}), 400
 
-        try:
-            raw_url = github_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
-            print(raw_url)
-            response = requests.get(raw_url)
-            
+    # Cambiar la URL para obtener el archivo raw
+    raw_url = github_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
+    response = requests.get(raw_url)
 
-            if not response or response.status_code != 200:
-                return jsonify({'success': False, 'message': 'Failed to fetch repository contents from GitHub'}), 500
+    if not response or response.status_code != 200:
+        return jsonify({'success': False, 'message': 'Failed to fetch file from GitHub'}), 500
 
-            # Convertir el archivo descargado en base64 para enviarlo al frontend
-            file_content_base64 = base64.b64encode(response.content).decode('utf-8')
-            file_name = github_url.split("/")[-1]
-            return jsonify({
-                'success': True,
-                'message': 'File fetched successfully',
-                'file': base64.b64encode(response.content).decode('utf-8'),  # Contenido del archivo en base64
-                'file_name': github_url.split("/")[-1]  # Nombre del archivo extraído de la URL de GitHub
-            }), 200
+    # Determinar el nombre del archivo a partir de la URL
+    file_name = github_url.split("/")[-1]
 
-        except requests.exceptions.RequestException as e:
-            return jsonify({'success': False, 'message': f'Error fetching from GitHub: {str(e)}'}), 500
+    # Aquí no guardamos el archivo, solo devolvemos el contenido
+    file_content = base64.b64encode(response.content).decode('utf-8')
+
+    # Devolvemos el contenido para que se procese en el método de upload
+    return jsonify({
+        'success': True,
+        'file_content': file_content, 
+        'file_name': file_name
+    }), 200
 
 @dataset_bp.route("/dataset/upload/zip", methods=["GET", "POST"])
 @login_required
