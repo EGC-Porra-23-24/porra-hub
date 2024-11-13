@@ -4,8 +4,13 @@ import json
 import shutil
 import tempfile
 import uuid
+import requests
 from datetime import datetime, timezone
 from zipfile import ZipFile
+from werkzeug.utils import secure_filename
+import base64
+
+
 
 from flask import (
     redirect,
@@ -160,6 +165,206 @@ def upload():
         ),
         200,
     )
+
+@dataset_bp.route("/dataset/upload/github", methods=["GET", "POST"])
+@login_required
+def create_from_github(): 
+    form = DataSetForm()
+    if request.method == "POST":
+
+        dataset = None
+
+        if not form.validate_on_submit():
+            return jsonify({"message": form.errors}), 400
+
+        try:
+            logger.info("Creating dataset...")
+            dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+            logger.info(f"Created dataset: {dataset}")
+            dataset_service.move_feature_models(dataset)
+        except Exception as exc:
+            logger.exception(f"Exception while create dataset data in local {exc}")
+            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+
+        # send dataset as deposition to Zenodo
+        data = {}
+        try:
+            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
+            response_data = json.dumps(zenodo_response_json)
+            data = json.loads(response_data)
+        except Exception as exc:
+            data = {}
+            zenodo_response_json = {}
+            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
+
+        if data.get("conceptrecid"):
+            deposition_id = data.get("id")
+
+            # update dataset with deposition id in Zenodo
+            dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
+
+            try:
+                # iterate for each feature model (one feature model = one request to Zenodo)
+                for feature_model in dataset.feature_models:
+                    zenodo_service.upload_file(dataset, deposition_id, feature_model)
+
+                # publish deposition
+                zenodo_service.publish_deposition(deposition_id)
+
+                # update DOI
+                deposition_doi = zenodo_service.get_doi(deposition_id)
+                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
+            except Exception as e:
+                msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
+                return jsonify({"message": msg}), 200
+
+        # Delete temp folder
+        file_path = current_user.temp_folder()
+        if os.path.exists(file_path) and os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
+        msg = "Everything works!"
+        return jsonify({"message": msg}), 200
+
+    return render_template("dataset/upload_github.html", form=form)
+
+
+
+@dataset_bp.route("/dataset/upload/file/github", methods=["GET", "POST"])
+@login_required 
+def upload_from_github():  
+        if request.method == 'POST':
+            github_url = request.json.get('github_url')
+            print(github_url)
+
+        if not github_url:
+            return jsonify({'success': False, 'message': 'GitHub URL is required'}), 400
+
+        if not github_url.startswith("https://github.com/"):
+            return jsonify({'success': False, 'message': 'Invalid GitHub URL'}), 400
+
+        if not (github_url.endswith('.zip') or github_url.endswith('.uvl')):
+            return jsonify({'success': False, 'message': 'Invalid file type. Only .zip or .uvl are allowed'}), 400
+        
+
+        try:
+            raw_url = github_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
+            print(raw_url)
+            response = requests.get(raw_url)
+            
+
+            if not response or response.status_code != 200:
+                return jsonify({'success': False, 'message': 'Failed to fetch repository contents from GitHub'}), 500
+
+            # Convertir el archivo descargado en base64 para enviarlo al frontend
+            file_content_base64 = base64.b64encode(response.content).decode('utf-8')
+            file_name = github_url.split("/")[-1]
+            return jsonify({
+                'success': True,
+                'message': 'File fetched successfully',
+                'file': base64.b64encode(response.content).decode('utf-8'),  # Contenido del archivo en base64
+                'file_name': github_url.split("/")[-1]  # Nombre del archivo extraído de la URL de GitHub
+            }), 200
+
+        except requests.exceptions.RequestException as e:
+            return jsonify({'success': False, 'message': f'Error fetching from GitHub: {str(e)}'}), 500
+
+@dataset_bp.route("/dataset/upload/zip", methods=["GET", "POST"])
+@login_required
+def create_from_zip():  
+        form = DataSetForm()
+        if request.method == "POST":
+
+            dataset = None
+
+            if not form.validate_on_submit():
+                return jsonify({"message": form.errors}), 400
+
+            try:
+                logger.info("Creating dataset...")
+                dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+                logger.info(f"Created dataset: {dataset}")
+                dataset_service.move_feature_models(dataset)
+            except Exception as exc:
+                logger.exception(f"Exception while create dataset data in local {exc}")
+                return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+            
+            data = {}
+            try:
+                zenodo_response_json = zenodo_service.create_new_deposition(dataset)
+                response_data = json.dumps(zenodo_response_json)
+                data = json.loads(response_data)
+            except Exception as exc:
+                data = {}
+                zenodo_response_json = {}
+                logger.exception(f"Exception while create dataset data in Zenodo {exc}")
+
+            if data.get("conceptrecid"):
+                deposition_id = data.get("id")
+                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
+
+                try:
+                    for feature_model in dataset.feature_models:
+                        zenodo_service.upload_file(dataset, deposition_id, feature_model)
+                    zenodo_service.publish_deposition(deposition_id)
+
+                    deposition_doi = zenodo_service.get_doi(deposition_id)
+                    dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
+                except Exception as e:
+                    msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
+                    return jsonify({"message": msg}), 200
+                
+            file_path = current_user.temp_folder()
+            if os.path.exists(file_path) and os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+
+            msg = "Everything works!"
+            return jsonify({"message": msg}), 200
+
+        return render_template("dataset/upload_zip.html", form=form)
+
+@dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
+@login_required
+def upload_from_zip(): 
+
+        file = request.files["file"]
+        temp_folder = current_user.temp_folder()
+
+        if not file or not file.filename.endswith(".zip"):
+            return jsonify({"message": "No valid file"}), 400
+
+        if not os.path.exists(temp_folder):
+            os.makedirs(temp_folder)
+
+        file_path = os.path.join(temp_folder, file.filename)
+
+        if os.path.exists(file_path):
+            base_name, extension = os.path.splitext(file.filename)
+            i = 1
+            while os.path.exists(
+                os.path.join(temp_folder, f"{base_name} ({i}){extension}")
+            ):
+                i += 1
+            new_filename = f"{base_name} ({i}){extension}"
+            file_path = os.path.join(temp_folder, new_filename)
+        else:
+            new_filename = file.filename
+
+        try:
+            file.save(file_path)
+        except Exception as e:
+            return jsonify({"message": str(e)}), 500
+
+        return (
+            jsonify(
+                {
+                    "message": "zip uploaded and validated successfully",
+                    "filename": new_filename,
+                }
+            ),
+            200,
+)
+
 
 
 @dataset_bp.route("/dataset/file/delete", methods=["POST"])
