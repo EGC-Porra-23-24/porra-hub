@@ -246,23 +246,17 @@ def download_all_dataset():
     user_cookie = request.cookies.get("download_cookie")
     if not user_cookie:
         user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
-
         # Crear un directorio temporal para almacenar el archivo ZIP
         temp_dir = tempfile.mkdtemp()
-
         # Crear el archivo ZIP que contendrá todos los datasets
         zip_path = os.path.join(temp_dir, "all_datasets.zip")
         with ZipFile(zip_path, "w") as zipf:
             # Obtener todos los datasets existentes (sin filtrar por usuario)
             datasets = dataset_service.get_all()
-            print(datasets)
             # Iterar sobre todos los datasets y agregar sus archivos al ZIP
             for dataset in datasets:
                 # Suponiendo que cada dataset tiene un archivo en una ruta conocida
-                print(dataset)
                 file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-                print("####################")
-                print(file_path)
                 temp_dir = tempfile.mkdtemp()
                 zip_path = os.path.join(temp_dir, f"dataset_{dataset.id}.zip")
                 # Verificar si el archivo existe antes de agregarlo
@@ -271,9 +265,7 @@ def download_all_dataset():
                     for subdir, dirs, files in os.walk(file_path):
                         for file in files:
                             full_path = os.path.join(subdir, file)
-
                             relative_path = os.path.relpath(full_path, file_path)
-
                             zipf.write(
                                 full_path,
                                 arcname=os.path.join(
@@ -299,18 +291,13 @@ def download_all_dataset():
     else:
         # Si la cookie ya existe, simplemente enviar el archivo ZIP
         temp_dir = tempfile.mkdtemp()
-
         # Crear el archivo ZIP que contendrá todos los datasets
         zip_path = os.path.join(temp_dir, "all_datasets.zip")
         with ZipFile(zip_path, "w") as zipf:
             # Obtener todos los datasets existentes
             datasets = dataset_service.get_all()
-            print(datasets)
             # Iterar sobre todos los datasets y agregar sus archivos al ZIP
             for dataset in datasets:
-                print("####")
-                print(dataset)
-                print(dataset.files)
                 # Suponiendo que cada dataset tiene un archivo en una ruta conocida
                 file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
                 print(file_path)
@@ -320,9 +307,7 @@ def download_all_dataset():
                     for subdir, dirs, files in os.walk(file_path):
                         for file in files:
                             full_path = os.path.join(subdir, file)
-
                             relative_path = os.path.relpath(full_path, file_path)
-
                             zipf.write(
                                 full_path,
                                 arcname=os.path.join(
