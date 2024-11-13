@@ -245,18 +245,20 @@ def upload_from_github():
 
     # Cambiar la URL para obtener el archivo raw
     raw_url = github_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
-    response = requests.get(raw_url)
 
-    if not response or response.status_code != 200:
-        return jsonify({'success': False, 'message': 'Failed to fetch file from GitHub'}), 500
+    try:
+        response = requests.get(raw_url)
+        response.raise_for_status()  # Verifica si la respuesta es un código de error HTTP
+    except requests.exceptions.RequestException as e:
+        return jsonify({'success': False, 'message': f'Failed to fetch file from GitHub: {str(e)}'}), 500
 
     # Determinar el nombre del archivo a partir de la URL
     file_name = github_url.split("/")[-1]
 
-    # Aquí no guardamos el archivo, solo devolvemos el contenido
+    # Convertir el contenido del archivo a Base64
     file_content = base64.b64encode(response.content).decode('utf-8')
 
-    # Devolvemos el contenido para que se procese en el método de upload
+    # Devolver el contenido en la respuesta JSON
     return jsonify({
         'success': True,
         'file_content': file_content,
