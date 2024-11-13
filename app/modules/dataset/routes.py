@@ -7,11 +7,7 @@ import uuid
 import requests
 from datetime import datetime, timezone
 from zipfile import ZipFile
-from werkzeug.utils import secure_filename
 import base64
-
-
-
 from flask import (
     redirect,
     render_template,
@@ -167,9 +163,10 @@ def upload():
         200,
     )
 
+
 @dataset_bp.route("/dataset/upload/github", methods=["GET", "POST"])
 @login_required
-def create_from_github(): 
+def create_from_github():
     form = DataSetForm()
     if request.method == "POST":
 
@@ -230,10 +227,9 @@ def create_from_github():
     return render_template("dataset/upload_github.html", form=form)
 
 
-
 @dataset_bp.route("/dataset/upload/file/github", methods=["GET", "POST"])
-@login_required 
-def upload_from_github():  
+@login_required
+def upload_from_github():
     github_url = request.json.get('github_url')
 
     if not github_url:
@@ -263,55 +259,53 @@ def upload_from_github():
     # Devolvemos el contenido para que se procese en el método de upload
     return jsonify({
         'success': True,
-        'file_content': file_content, 
+        'file_content': file_content,
         'file_name': file_name
     }), 200
 
+
 @dataset_bp.route("/dataset/upload/zip", methods=["GET", "POST"])
 @login_required
-def create_from_zip():  
-        form = DataSetForm()
-        if request.method == "POST":
+def create_from_zip():
+    form = DataSetForm()
+    if request.method == "POST":
 
-            dataset = None
+        dataset = None
 
-            if not form.validate_on_submit():
-                return jsonify({"message": form.errors}), 400
-
-            try:
-                logger.info("Creating dataset...")
-                dataset = dataset_service.create_from_form(form=form, current_user=current_user)
-                logger.info(f"Created dataset: {dataset}")
-                dataset_service.move_feature_models(dataset)
-            except Exception as exc:
-                logger.exception(f"Exception while create dataset data in local {exc}")
-                return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
-            
+        if not form.validate_on_submit():
+            return jsonify({"message": form.errors}), 400
+        try:
+            logger.info("Creating dataset...")
+            dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+            logger.info(f"Created dataset: {dataset}")
+            dataset_service.move_feature_models(dataset)
+        except Exception as exc:
+            logger.exception(f"Exception while create dataset data in local {exc}")
+            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+        data = {}
+        try:
+            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
+            response_data = json.dumps(zenodo_response_json)
+            data = json.loads(response_data)
+        except Exception as exc:
             data = {}
+            zenodo_response_json = {}
+            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
+
+        if data.get("conceptrecid"):
+            deposition_id = data.get("id")
+            dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
+
             try:
-                zenodo_response_json = zenodo_service.create_new_deposition(dataset)
-                response_data = json.dumps(zenodo_response_json)
-                data = json.loads(response_data)
-            except Exception as exc:
-                data = {}
-                zenodo_response_json = {}
-                logger.exception(f"Exception while create dataset data in Zenodo {exc}")
-
-            if data.get("conceptrecid"):
-                deposition_id = data.get("id")
-                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
-
-                try:
-                    for feature_model in dataset.feature_models:
-                        zenodo_service.upload_file(dataset, deposition_id, feature_model)
+                for feature_model in dataset.feature_models:
+                    zenodo_service.upload_file(dataset, deposition_id, feature_model)
                     zenodo_service.publish_deposition(deposition_id)
 
-                    deposition_doi = zenodo_service.get_doi(deposition_id)
-                    dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
-                except Exception as e:
-                    msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
-                    return jsonify({"message": msg}), 200
-                
+                deposition_doi = zenodo_service.get_doi(deposition_id)
+                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
+            except Exception as e:
+                msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
+                return jsonify({"message": msg}), 200
             file_path = current_user.temp_folder()
             if os.path.exists(file_path) and os.path.isdir(file_path):
                 shutil.rmtree(file_path)
@@ -321,33 +315,33 @@ def create_from_zip():
 
         return render_template("dataset/upload_zip.html", form=form)
 
+
 @dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
 @login_required
-def upload_from_zip(): 
+def upload_from_zip():
 
-        file = request.files["file"]
-        temp_folder = current_user.temp_folder()
+    file = request.files["file"]
+    temp_folder = current_user.temp_folder()
 
-        if not file or not file.filename.endswith(".zip"):
-            return jsonify({"message": "No valid file"}), 400
+    if not file or not file.filename.endswith(".zip"):
+        return jsonify({"message": "No valid file"}), 400
 
-        if not os.path.exists(temp_folder):
-            os.makedirs(temp_folder)
+    if not os.path.exists(temp_folder):
+        os.makedirs(temp_folder)
 
-        file_path = os.path.join(temp_folder, file.filename)
+    file_path = os.path.join(temp_folder, file.filename)
 
-        if os.path.exists(file_path):
-            base_name, extension = os.path.splitext(file.filename)
-            i = 1
-            while os.path.exists(
-                os.path.join(temp_folder, f"{base_name} ({i}){extension}")
-            ):
-                i += 1
-            new_filename = f"{base_name} ({i}){extension}"
-            file_path = os.path.join(temp_folder, new_filename)
-        else:
-            new_filename = file.filename
-
+    if os.path.exists(file_path):
+        base_name, extension = os.path.splitext(file.filename)
+        i = 1
+        while os.path.exists(
+            os.path.join(temp_folder, f"{base_name} ({i}){extension}")
+        ):
+            i += 1
+        new_filename = f"{base_name} ({i}){extension}"
+        file_path = os.path.join(temp_folder, new_filename)
+    else:
+        new_filename = file.filename
         try:
             file.save(file_path)
         except Exception as e:
@@ -361,8 +355,7 @@ def upload_from_zip():
                 }
             ),
             200,
-)
-
+        )
 
 
 @dataset_bp.route("/dataset/file/delete", methods=["POST"])
