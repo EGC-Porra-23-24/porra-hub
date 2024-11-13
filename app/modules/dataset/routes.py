@@ -255,14 +255,31 @@ def download_all_dataset():
         with ZipFile(zip_path, "w") as zipf:
             # Obtener todos los datasets existentes (sin filtrar por usuario)
             datasets = dataset_service.get_all()
+            print(datasets)
             # Iterar sobre todos los datasets y agregar sus archivos al ZIP
             for dataset in datasets:
                 # Suponiendo que cada dataset tiene un archivo en una ruta conocida
-                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/data.csv"
-
+                print(dataset)
+                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+                print("####################")
+                print(file_path)
+                temp_dir = tempfile.mkdtemp()
+                zip_path = os.path.join(temp_dir, f"dataset_{dataset.id}.zip")
                 # Verificar si el archivo existe antes de agregarlo
                 if os.path.exists(file_path):
                     zipf.write(file_path, os.path.basename(file_path))
+                    for subdir, dirs, files in os.walk(file_path):
+                        for file in files:
+                            full_path = os.path.join(subdir, file)
+
+                            relative_path = os.path.relpath(full_path, file_path)
+
+                            zipf.write(
+                                full_path,
+                                arcname=os.path.join(
+                                    os.path.basename(zip_path[:-4]), relative_path
+                                ),
+                            )
                 else:
                     print(f"Archivo no encontrado para el dataset {dataset.id}")
 
@@ -287,16 +304,31 @@ def download_all_dataset():
         zip_path = os.path.join(temp_dir, "all_datasets.zip")
         with ZipFile(zip_path, "w") as zipf:
             # Obtener todos los datasets existentes
-            datasets = dataset_service.get_all()  # Asumiendo que dataset_service.get_all() devuelve todos los datasets
-
+            datasets = dataset_service.get_all()
+            print(datasets)
             # Iterar sobre todos los datasets y agregar sus archivos al ZIP
             for dataset in datasets:
+                print("####")
+                print(dataset)
+                print(dataset.files)
                 # Suponiendo que cada dataset tiene un archivo en una ruta conocida
-                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/data.csv"
-
+                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+                print(file_path)
                 # Verificar si el archivo existe antes de agregarlo
                 if os.path.exists(file_path):
                     zipf.write(file_path, os.path.basename(file_path))
+                    for subdir, dirs, files in os.walk(file_path):
+                        for file in files:
+                            full_path = os.path.join(subdir, file)
+
+                            relative_path = os.path.relpath(full_path, file_path)
+
+                            zipf.write(
+                                full_path,
+                                arcname=os.path.join(
+                                    os.path.basename(zip_path[:-4]), relative_path
+                                ),
+                            )
                 else:
                     print(f"Archivo no encontrado para el dataset {dataset.id}")
 
