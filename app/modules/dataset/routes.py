@@ -247,11 +247,12 @@ def upload_from_github():
     raw_url = github_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
 
     try:
-        response = requests.get(raw_url)
-        response.raise_for_status()  # Verifica si la respuesta es un código de error HTTP
+        response = requests.get(raw_url, timeout=30)
+        response.raise_for_status()
+    except requests.exceptions.Timeout:
+        return jsonify({'success': False, 'message': 'Request timed out while fetching file from GitHub'}), 504
     except requests.exceptions.RequestException as e:
         return jsonify({'success': False, 'message': f'Failed to fetch file from GitHub: {str(e)}'}), 500
-
     # Determinar el nombre del archivo a partir de la URL
     file_name = github_url.split("/")[-1]
 
