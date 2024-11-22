@@ -256,9 +256,9 @@ def download_all_dataset():
             # Iterar sobre todos los datasets y agregar sus archivos al ZIP
             for dataset in datasets:
                 # Suponiendo que cada dataset tiene un archivo en una ruta conocida
-                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
                 temp_dir = tempfile.mkdtemp()
                 zip_path = os.path.join(temp_dir, f"dataset_{dataset.id}.zip")
+                file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
                 # Verificar si el archivo existe antes de agregarlo
                 if os.path.exists(file_path):
                     zipf.write(file_path, os.path.basename(file_path))
@@ -274,7 +274,6 @@ def download_all_dataset():
                             )
                 else:
                     print(f"Archivo no encontrado para el dataset {dataset.id}")
-
         # Crear la respuesta con el archivo ZIP
         resp = make_response(
             send_from_directory(
@@ -284,10 +283,8 @@ def download_all_dataset():
                 mimetype="application/zip"
             )
         )
-
         # Establecer la cookie "download_cookie" para que no se genere nuevamente
         resp.set_cookie("download_cookie", user_cookie)
-
     else:
         # Si la cookie ya existe, simplemente enviar el archivo ZIP
         temp_dir = tempfile.mkdtemp()
@@ -296,11 +293,9 @@ def download_all_dataset():
         with ZipFile(zip_path, "w") as zipf:
             # Obtener todos los datasets existentes
             datasets = dataset_service.get_all()
-            # Iterar sobre todos los datasets y agregar sus archivos al ZIP
             for dataset in datasets:
                 # Suponiendo que cada dataset tiene un archivo en una ruta conocida
                 file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-                print(file_path)
                 # Verificar si el archivo existe antes de agregarlo
                 if os.path.exists(file_path):
                     zipf.write(file_path, os.path.basename(file_path))
@@ -316,7 +311,6 @@ def download_all_dataset():
                             )
                 else:
                     print(f"Archivo no encontrado para el dataset {dataset.id}")
-
         # Enviar el archivo ZIP como una respuesta de descarga
         resp = send_from_directory(
             temp_dir,
@@ -324,7 +318,6 @@ def download_all_dataset():
             as_attachment=True,
             mimetype="application/zip"
         )
-
     # Devolver la respuesta con la cookie y el archivo ZIP
     return resp
 
