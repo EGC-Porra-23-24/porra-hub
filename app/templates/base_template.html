@@ -101,6 +101,22 @@ chico sundermann">
                             <i class="align-middle" data-feather="upload"></i> <span
                                 class="align-middle">Upload dataset</span>
                         </a>
+
+                            <!-- Botón desplegable con el mismo formato -->
+                            <div class="dropdown ms-auto">
+                                <button class="btn btn-link sidebar-link p-0 align-middle d-flex align-items-center" id="uploadDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration: none;">
+                                    <i class="ms-1" data-feather="chevron-down"></i>
+                                </button>
+                        
+                                <!-- Menú desplegable con las opciones -->
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="uploadDropdown">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('dataset.create_from_github') }}">
+                                            Upload github
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                     </li>
 
                     <li class="sidebar-item {{ 'active' if request.endpoint == 'dataset.list_dataset' else '' }}">
