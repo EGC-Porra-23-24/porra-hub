@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from zipfile import ZipFile
 
 from flask import (
+    Blueprint,
+    flash,
     redirect,
     render_template,
     request,
@@ -30,7 +32,8 @@ from app.modules.dataset.services import (
     DSMetaDataService,
     DSViewRecordService,
     DataSetService,
-    DOIMappingService
+    DOIMappingService,
+    CommunityService
 )
 from app.modules.zenodo.services import ZenodoService
 
@@ -278,3 +281,97 @@ def get_unsynchronized_dataset(dataset_id):
         abort(404)
 
     return render_template("dataset/view_dataset.html", dataset=dataset)
+
+
+community_bp = Blueprint('community', __name__)
+community_service = CommunityService()
+
+
+@community_bp.route('/communities', methods=['GET'])
+@login_required
+def list_communities():
+    communities = CommunityService.list_communities()
+    return render_template('community/list_communities.html',
+                           communities=communities,
+                           current_user=current_user,
+                           is_owner=CommunityService.is_owner,
+                           is_member=CommunityService.is_member,
+                           is_request=CommunityService.is_request)
+
+
+@community_bp.route('/community/<int:community_id>', methods=['GET'])
+@login_required
+def view_community(community_id):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community:
+        return "Community not found", 404
+
+    owners = [owner.profile.name for owner in community.owners.all()]
+    members = [member.profile.name for member in community.members.all()]
+    requests = [request.profile.name for request in community.requests.all()]
+
+    return render_template('community/view_community.html',
+                           community=community,
+                           current_user=current_user,
+                           owners=owners,
+                           members=members,
+                           requests=requests,
+                           is_owner=CommunityService.is_owner,
+                           is_member=CommunityService.is_member,
+                           is_request=CommunityService.is_request)
+
+
+@community_bp.route('/community/create', methods=['GET'])
+@login_required
+def create_community_page():
+    return render_template('community/create_community.html')
+
+
+@community_bp.route('/community/create', methods=['POST'])
+@login_required
+def create_community():
+    name = request.form.get('name')
+    if not name:
+        flash('Community name is required', 'danger')
+        return redirect(url_for('community.create_community_page'))
+    CommunityService.create_community(name, current_user)
+    flash('Community created successfully!', 'success')
+    return redirect(url_for('community.list_communities'))
+
+
+@community_bp.route('/community/<int:community_id>/edit', methods=['GET'])
+@login_required
+def edit_community_page(community_id):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community:
+        return "Community not found", 404
+    if not CommunityService.is_owner(community, current_user):
+        return "Forbidden", 403
+
+    return render_template('community/edit_community.html', community=community)
+
+
+@community_bp.route('/community/<int:community_id>/edit', methods=['POST'])
+@login_required
+def edit_community(community_id):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community:
+        return "Community not found", 404
+    if not CommunityService.is_owner(community, current_user):
+        return "Forbidden", 403
+    new_name = request.form.get('name')
+    updated_community = CommunityService.update_community(community_id, new_name)
+
+    return redirect(url_for('community.view_community', community_id=updated_community.id))
+
+
+@community_bp.route('/community/<int:community_id>/delete', methods=['POST'])
+@login_required
+def delete_community(community_id):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community:
+        return "Community not found", 404
+    if not CommunityService.is_owner(community, current_user):
+        return "Forbidden", 403
+    CommunityService.remove_community(community_id)
+    return redirect(url_for('community.list_communities'))
