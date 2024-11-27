@@ -123,6 +123,7 @@ def list_dataset():
 @login_required
 def upload():
     file = request.files["file"]
+    print(file.filename)
     temp_folder = current_user.temp_folder()
 
     if not file or not file.filename.endswith(".uvl"):
@@ -224,6 +225,68 @@ def upload_from_zip():
         200,
     )
 
+@dataset_bp.route("/dataset/upload/zip", methods=["POST", "GET"])
+@login_required
+def create_from_zip():
+    form = DataSetForm()
+    if request.method == "POST":
+
+        dataset = None
+
+        if not form.validate_on_submit():
+            return jsonify({"message": form.errors}), 400
+
+        try:
+            logger.info("Creating dataset...")
+            dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+            logger.info(f"Created dataset: {dataset}")
+            dataset_service.move_feature_models(dataset)
+        except Exception as exc:
+            logger.exception(f"Exception while create dataset data in local {exc}")
+            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+
+        # send dataset as deposition to Zenodo
+        data = {}
+        try:
+            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
+            response_data = json.dumps(zenodo_response_json)
+            data = json.loads(response_data)
+        except Exception as exc:
+            data = {}
+            zenodo_response_json = {}
+            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
+
+        if data.get("conceptrecid"):
+            deposition_id = data.get("id")
+
+            # update dataset with deposition id in Zenodo
+            dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
+
+            try:
+                # iterate for each feature model (one feature model = one request to Zenodo)
+                for feature_model in dataset.feature_models:
+                    zenodo_service.upload_file(dataset, deposition_id, feature_model)
+
+                # publish deposition
+                zenodo_service.publish_deposition(deposition_id)
+
+                # update DOI
+                deposition_doi = zenodo_service.get_doi(deposition_id)
+                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
+            except Exception as e:
+                msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
+                return jsonify({"message": msg}), 200
+
+        # Delete temp folder
+        file_path = current_user.temp_folder()
+        if os.path.exists(file_path) and os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
+        msg = "Everything works!"
+        return jsonify({"message": msg}), 200
+
+    return render_template("dataset/upload_zip.html", form=form)
+
 
 @dataset_bp.route("/dataset/file/delete", methods=["POST"])
 def delete():
@@ -297,6 +360,65 @@ def download_dataset(dataset_id):
         DSDownloadRecordService().create(
             user_id=current_user.id if current_user.is_authenticated else None,
             dataset_id=dataset_id,
+            download_date=datetime.now(timezone.utc),
+            download_cookie=user_cookie,
+        )
+
+    return resp
+
+
+@dataset_bp.route("/dataset/download/all", methods=["GET"])
+def download_all_dataset():
+    # Obtener la cookie de descarga
+    user_cookie = request.cookies.get("download_cookie")
+    if not user_cookie:
+        user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
+
+    # Crear un directorio temporal para almacenar el archivo ZIP
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, "all_datasets.zip")
+
+    with ZipFile(zip_path, "w") as zipf:
+        # Obtener todos los datasets existentes (sin filtrar por usuario)
+        datasets = dataset_service.get_all()
+
+        # Iterar sobre todos los datasets y agregar sus archivos al ZIP
+        for dataset in datasets:
+            file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+            if os.path.exists(file_path):
+                # Agregar los archivos del dataset al ZIP
+                for subdir, dirs, files in os.walk(file_path):
+                    for file in files:
+                        full_path = os.path.join(subdir, file)
+                        relative_path = os.path.relpath(full_path, file_path)
+                        zipf.write(full_path, arcname=os.path.join(f"dataset_{dataset.id}", relative_path))
+            else:
+                print(f"Archivo no encontrado para el dataset {dataset.id}")
+
+    # Responder con el archivo ZIP
+    resp = make_response(
+        send_from_directory(
+            temp_dir,
+            "all_datasets.zip",
+            as_attachment=True,
+            mimetype="application/zip"
+        )
+    )
+
+    # Establecer la cookie "download_cookie" para que no se genere nuevamente
+    resp.set_cookie("download_cookie", user_cookie)
+
+    # Registro de la descarga en la base de datos
+    existing_record = DSDownloadRecord.query.filter_by(
+        user_id=current_user.id if current_user.is_authenticated else None,
+        download_cookie=user_cookie
+    ).first()
+
+    if not existing_record:
+        # Registrar la descarga en la base de datos
+        DSDownloadRecordService().create(
+            user_id=current_user.id if current_user.is_authenticated else None,
+            dataset_id=None,  # No es necesario asociar con un dataset en particular
             download_date=datetime.now(timezone.utc),
             download_cookie=user_cookie,
         )
