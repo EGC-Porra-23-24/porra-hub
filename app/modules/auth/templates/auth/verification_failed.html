@@ -1,0 +1,15 @@
+{% extends "base_template.html" %}
+
+{% block title %}Verification Failed{% endblock %}
+
+{% block content %}
+<h1 class="h2 mb-3"><b>Email Verification Failed</b></h1>
+
+<div class="row">
+    <div class="col-12">
+        <p class="lead">The verification link is either invalid or has expired. Please check the link or request a new verification email.</p>
+        <a href="{{ url_for('auth.show_signup_form') }}" class="btn btn-warning">Request a new verification email</a>
+    </div>
+</div>
+
+{% endblock %}

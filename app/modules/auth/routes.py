@@ -12,6 +12,7 @@ user_profile_service = UserProfileService()
 
 
 @auth_bp.route("/signup/", methods=["GET", "POST"])
+@auth_bp.route("/signup/", methods=["GET", "POST"])
 def show_signup_form():
     if current_user.is_authenticated:
         return redirect(url_for('public.index'))
@@ -22,18 +23,34 @@ def show_signup_form():
         if not authentication_service.is_email_available(email):
             return render_template("auth/signup_form.html", form=form, error=f'Email {email} in use')
 
+        # Generamos un token de verificación
         try:
-            user = authentication_service.create_with_profile(**form.data)
+            # Generamos un token para la verificación
+            authentication_service.send_verification_email(email)  # Envía el correo con el token
         except Exception as exc:
-            return render_template("auth/signup_form.html", form=form, error=f'Error creating user: {exc}')
+            return render_template("auth/signup_form.html", form=form, error=f'Error sending verification email: {exc}')
 
-        # Log user
-        login_user(user, remember=True)
-        return redirect(url_for('public.index'))
+        return render_template("auth/signup_success.html", message="Revisa tu correo para verificar tu cuenta.")
 
     return render_template("auth/signup_form.html", form=form)
 
-
+@auth_bp.route('/verify/<token>')
+def verify_email(token):
+    # Verifica el token y obtiene el correo electrónico asociado
+    email = authentication_service.verify_token(token)
+    
+    if email is None:
+        return render_template("auth/verification_failed.html", message="El enlace de verificación es inválido o ha expirado.")
+    
+    # Si el token es válido, creamos al usuario
+    try:
+        # Aquí creamos el usuario una vez que se verifica el correo
+        # Llamamos al método `create_with_profile` para crear el usuario
+        user = authentication_service.create_with_profile(email=email)  # Puedes pasar otros datos si es necesario
+        return render_template("auth/verification_success.html", message="Correo verificado y cuenta creada con éxito.")
+    except Exception as exc:
+        return render_template("auth/verification_failed.html", message=f"Error al crear el usuario: {exc}")
+    
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
