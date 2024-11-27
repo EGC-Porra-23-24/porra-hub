@@ -6,6 +6,8 @@ import tempfile
 import uuid
 from datetime import datetime, timezone
 from zipfile import ZipFile
+import zipfile
+
 from flask import (
     redirect,
     render_template,
@@ -162,6 +164,68 @@ def upload():
     )
 
 
+@dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
+@login_required
+def upload_from_zip():
+    file = request.files["file"]
+    temp_folder = current_user.temp_folder()
+
+    if not file or not file.filename.endswith(".zip"):
+        return jsonify({"message": "No valid file"}), 400
+
+    if not os.path.exists(temp_folder):
+        os.makedirs(temp_folder)
+
+    file_path = os.path.join(temp_folder, file.filename)
+
+    # Manejar conflictos de nombre de archivo
+    if os.path.exists(file_path):
+        base_name, extension = os.path.splitext(file.filename)
+        i = 1
+        while os.path.exists(
+            os.path.join(temp_folder, f"{base_name} ({i}){extension}")
+        ):
+            i += 1
+        new_filename = f"{base_name} ({i}){extension}"
+        file_path = os.path.join(temp_folder, new_filename)
+    else:
+        new_filename = file.filename
+
+    try:
+        file.save(file_path)
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+    # Extraer archivos .uvl del zip
+    extracted_files = []
+    try:
+        with ZipFile(file_path, 'r') as zip_ref:
+            for zip_info in zip_ref.infolist():
+                if zip_info.filename.endswith(".uvl"):
+                    # Extraer archivo en la carpeta temporal del usuario
+                    extracted_path = os.path.join(temp_folder, zip_info.filename)
+                    zip_ref.extract(zip_info, temp_folder)
+                    extracted_files.append(zip_info.filename)
+    except zipfile.BadZipFile:
+        return jsonify({"message": "Invalid zip file"}), 400
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+
+    if not extracted_files:
+        return jsonify({"message": "No .uvl files found in the zip"}), 400
+
+    return (
+        jsonify(
+            {
+                "message": "Zip uploaded and .uvl files extracted successfully",
+                "extracted_files": extracted_files,
+                "extracted_path": extracted_path,
+            }
+        ),
+        200,
+    )
+
+
 @dataset_bp.route("/dataset/upload/zip", methods=["POST", "GET"])
 @login_required
 def create_from_zip():
@@ -223,12 +287,6 @@ def create_from_zip():
         return jsonify({"message": msg}), 200
 
     return render_template("dataset/upload_zip.html", form=form)
-
-
-@dataset_bp.route("/dataset/file/upload/zip", methods=["POST", "GET"])
-@login_required
-def upload_from_zip():
-    pass
 
 
 @dataset_bp.route("/dataset/file/delete", methods=["POST"])
