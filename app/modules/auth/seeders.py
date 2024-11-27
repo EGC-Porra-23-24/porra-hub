@@ -24,7 +24,7 @@ class AuthSeeder(BaseSeeder):
         # Create profiles for each user inserted.
         user_profiles = []
         names = [("John", "Doe"), ("Jane", "Doe"), ("Alice", "Smith"), ("Bob", "Johnson")]
-        
+
         for user, name in zip(seeded_users, names):
             profile_data = {
                 "user_id": user.id,
