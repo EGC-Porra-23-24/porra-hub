@@ -12,9 +12,11 @@
         {% if not is_member(community, current_user) %}
             {% if not is_request(community, current_user) %}
                 <div class="d-flex justify-content-end mb-3">
-                    <a href="{{ url_for('community.create_community') }}" class="btn btn-primary">
-                        <i data-feather="plus"></i> Request to join
-                    </a>
+                    <form method="POST" action="{{ url_for('community.request_community', community_id=community.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-primary" onclick="return confirm('Do you want to join this community?');">
+                            <i data-feather="user-plus"></i> Request to join
+                        </button>
+                    </form>    
                 </div>
             {% endif %}
         {% endif %}
