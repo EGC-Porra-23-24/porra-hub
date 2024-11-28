@@ -593,4 +593,3 @@ def handle_request(community_id, user_id, action):
         flash('Failed to handle the request.', 'danger')
 
     return redirect(url_for('community.view_community', community_id=community_id))
-
