@@ -41,13 +41,29 @@
 
         {% if is_owner(community, current_user) %}
             {% if requests %}
-                <p><strong>Requests:</strong> 
-                    {{ requests | join(', ') }}
-                </p>
+                <p><strong>Requests:</strong></p>
+                <ul>
+                    {% for request in requests %}
+                        <li>
+                            {{ request.profile.surname }}, {{ request.profile.name }}
+                            <form method="POST" action="{{ url_for('community.handle_request', community_id=community.id, user_id=request.id, action='accept') }}" style="display: inline;">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i data-feather="user-plus"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('community.handle_request', community_id=community.id, user_id=request.id, action='reject') }}" style="display: inline;">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i data-feather="user-x"></i>
+                                </button>                            
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
             {% else %}
                 <p>No requests yet.</p>
             {% endif %}
-        {% endif %}
+    {% endif %}
+
     </div>
 </div>
 

@@ -268,3 +268,14 @@ class CommunityService:
         if result_request:
             raise Exception("Request to join the community is already pending.")
         CommunityRepository.request_community(community_id, current_user)
+
+    @staticmethod
+    def handle_request(community_id, user_id, action):
+        if action == "accept":
+            added = CommunityRepository.add_member(community_id, user_id)
+            if added:
+                CommunityRepository.remove_request(community_id, user_id)
+                return True
+        elif action == "reject":
+            return CommunityRepository.remove_request(community_id, user_id)
+        return False
