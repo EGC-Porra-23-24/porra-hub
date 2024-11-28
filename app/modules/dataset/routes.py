@@ -561,3 +561,14 @@ def delete_community(community_id):
         return "Forbidden", 403
     CommunityService.remove_community(community_id)
     return redirect(url_for('community.list_communities'))
+
+
+@community_bp.route('/community/<int:community_id>/request', methods=['POST'])
+@login_required
+def request_community(community_id):
+    try:
+        CommunityService.request_community(community_id, current_user)
+        flash('Request to join the community has been sent successfully.', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('community.view_community', community_id=community_id))

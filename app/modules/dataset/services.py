@@ -239,7 +239,7 @@ class CommunityService:
         if not community:
             return None
         community.name = new_name
-        CommunityRepository.save_community(community)
+        CommunityRepository.save_community()
         return community
 
     @staticmethod
@@ -257,3 +257,14 @@ class CommunityService:
     @staticmethod
     def is_request(community, current_user):
         return current_user.id in [request.id for request in community.requests]
+
+    @staticmethod
+    def request_community(community_id, current_user):
+        community = CommunityService.get_community_by_id(community_id)
+        result_member = CommunityService.is_member(community, current_user)
+        if result_member:
+            raise Exception("User is already a member of this community.")
+        result_request = CommunityService.is_request(community, current_user)
+        if result_request:
+            raise Exception("Request to join the community is already pending.")
+        CommunityRepository.request_community(community_id, current_user)

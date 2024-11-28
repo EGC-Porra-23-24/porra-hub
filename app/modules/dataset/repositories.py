@@ -16,7 +16,7 @@ from app.modules.dataset.models import (
 from core.repositories.BaseRepository import BaseRepository
 
 from app import db
-from app.modules.auth.models import Community
+from app.modules.auth.models import Community, community_request
 
 logger = logging.getLogger(__name__)
 
@@ -165,5 +165,17 @@ class CommunityRepository:
             db.session.commit()
 
     @staticmethod
-    def save_community(community):
+    def save_community():
+        db.session.commit()
+
+    @staticmethod
+    def request_community(community_id, current_user):
+        community = Community.query.get(community_id)
+        if community:
+            db.session.execute(
+                community_request.insert().values(
+                    community_id=community_id,
+                    user_id=current_user.id
+                )
+            )
         db.session.commit()
