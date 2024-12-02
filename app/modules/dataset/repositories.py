@@ -147,7 +147,7 @@ class CommunityRepository:
             .filter(community_members.c.user_id == current_user_id)
             .all()
         )
-        
+
     @staticmethod
     def search_by_name(query):
         search = f"%{query}%"

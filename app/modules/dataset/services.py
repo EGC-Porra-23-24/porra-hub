@@ -230,7 +230,7 @@ class CommunityService:
     @staticmethod
     def get_communities_by_member(current_user):
         return CommunityRepository.get_communities_by_member(current_user.id)
-    
+
     @staticmethod
     def search_communities(query):
         if not query:
