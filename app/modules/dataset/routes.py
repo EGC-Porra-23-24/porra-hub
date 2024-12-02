@@ -477,7 +477,9 @@ community_service = CommunityService()
 @login_required
 def list_communities():
     communities = CommunityService.list_communities()
+    my_communities = CommunityService.get_communities_by_member(current_user)
     return render_template('community/list_communities.html',
+                           my_communities=my_communities,
                            communities=communities,
                            current_user=current_user,
                            is_owner=CommunityService.is_owner,
