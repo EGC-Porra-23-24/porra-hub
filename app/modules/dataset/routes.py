@@ -36,6 +36,9 @@ from app.modules.dataset.services import (
     DOIMappingService,
     CommunityService
 )
+from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter, JSONWriter, AFMWriter
+from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
+from app.modules.hubfile.services import HubfileService
 from app.modules.zenodo.services import ZenodoService
 
 logger = logging.getLogger(__name__)
@@ -376,7 +379,7 @@ def download_all_dataset():
     # Obtener la cookie de descarga
     user_cookie = request.cookies.get("download_cookie")
     if not user_cookie:
-        user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
+        user_cookie = str(uuid.uuid4())
 
     # Crear un directorio temporal para almacenar el archivo ZIP
     temp_dir = tempfile.mkdtemp()
@@ -385,17 +388,79 @@ def download_all_dataset():
     with ZipFile(zip_path, "w") as zipf:
         # Obtener todos los datasets existentes (sin filtrar por usuario)
         datasets = dataset_service.get_all()
-
-        # Iterar sobre todos los datasets y agregar sus archivos al ZIP
+        # Iterar sobre todos los datasets
         for dataset in datasets:
             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+            # Verificar que el directorio del dataset existe
             if os.path.exists(file_path):
-                # Agregar los archivos del dataset al ZIP
-                for subdir, dirs, files in os.walk(file_path):
-                    for file in files:
-                        full_path = os.path.join(subdir, file)
-                        relative_path = os.path.relpath(full_path, file_path)
-                        zipf.write(full_path, arcname=os.path.join(f"dataset_{dataset.id}", relative_path))
+                # Crear una carpeta para el dataset dentro del ZIP (usando el ID o nombre del dataset)
+                dataset_folder = f"dataset_{dataset.id}/"
+                # Iterar sobre todos los archivos del dataset usando dataset.files()
+                for file in dataset.files():
+                    full_path = os.path.join(file_path, file.name)
+                    # Verificar que el archivo existe
+                    if not os.path.exists(full_path):
+                        print(f"Archivo no encontrado: {full_path}")
+                        continue
+                    # Obtener el Hubfile correspondiente a este archivo
+                    try:
+                        hubfile = HubfileService().get_or_404(file.id)
+                        if not hubfile:
+                            print(f"No se encontró el Hubfile para el archivo {file.name}")
+                            continue
+                    except Exception as e:
+                        print(f"Error al obtener Hubfile para {file.name}: {str(e)}")
+                        continue
+
+                    # Convertir cada archivo a los formatos deseados
+                    for format in ["glencoe", "dimacs", "splot", "json", "afm", "uvl"]:
+                        content = ""
+                        name = f"{hubfile.name}_{format}.txt"
+
+                        # Realizar la conversión según el formato
+                        if format == "glencoe":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            GlencoeWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_glencoe.txt"
+                        elif format == "dimacs":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            sat = FmToPysat(fm).transform()
+                            DimacsWriter(temp_file.name, sat).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_cnf.txt"
+                        elif format == "splot":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            SPLOTWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_splot.txt"
+                        elif format == "json":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            JSONWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_json.txt"
+                        elif format == "afm":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.afm', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            AFMWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_afm.txt"
+                        elif format == "uvl":
+                            # Para UVL no hacemos transformación adicional, solo agregamos el archivo original
+                            content = open(full_path, "r").read()
+                            name = f"{file.name}_uvl.txt"
+
+                        # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
+                        zipf.writestr(os.path.join(dataset_folder, name), content)
             else:
                 print(f"Archivo no encontrado para el dataset {dataset.id}")
 
@@ -412,7 +477,7 @@ def download_all_dataset():
     # Establecer la cookie "download_cookie" para que no se genere nuevamente
     resp.set_cookie("download_cookie", user_cookie)
 
-    # Registro de la descarga en la base de datos
+    # Registrar la descarga en la base de datos
     existing_record = DSDownloadRecord.query.filter_by(
         user_id=current_user.id if current_user.is_authenticated else None,
         download_cookie=user_cookie
@@ -507,7 +572,7 @@ def view_community(community_id):
 
     owners = [owner.profile.name for owner in community.owners.all()]
     members = [member.profile.name for member in community.members.all()]
-    requests = [request.profile.name for request in community.requests.all()]
+    requests = community.requests.all()
 
     return render_template('community/view_community.html',
                            community=community,
@@ -574,3 +639,35 @@ def delete_community(community_id):
         return "Forbidden", 403
     CommunityService.remove_community(community_id)
     return redirect(url_for('community.list_communities'))
+
+
+@community_bp.route('/community/<int:community_id>/request', methods=['POST'])
+@login_required
+def request_community(community_id):
+    try:
+        CommunityService.request_community(community_id, current_user)
+        flash('Request to join the community has been sent successfully.', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('community.view_community', community_id=community_id))
+
+
+@community_bp.route('/community/<int:community_id>/requests/<int:user_id>/<string:action>', methods=['POST'])
+@login_required
+def handle_request(community_id, user_id, action):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community or not CommunityService.is_owner(community, current_user):
+        flash('You do not have permission to perform this action.', 'danger')
+        return redirect(url_for('community.view_community', community_id=community_id))
+
+    if action not in ["accept", "reject"]:
+        flash('Invalid action.', 'danger')
+        return redirect(url_for('community.view_community', community_id=community_id))
+
+    success = CommunityService.handle_request(community_id, user_id, action)
+    if success:
+        flash('Request handled successfully.', 'success')
+    else:
+        flash('Failed to handle the request.', 'danger')
+
+    return redirect(url_for('community.view_community', community_id=community_id))

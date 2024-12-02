@@ -16,7 +16,7 @@ from app.modules.dataset.models import (
 from core.repositories.BaseRepository import BaseRepository
 
 from app import db
-from app.modules.auth.models import Community
+from app.modules.auth.models import Community, User, community_request
 from app.modules.auth.models import community_members
 
 logger = logging.getLogger(__name__)
@@ -180,5 +180,39 @@ class CommunityRepository:
             db.session.commit()
 
     @staticmethod
-    def save_community(community):
+    def save_community():
         db.session.commit()
+
+    @staticmethod
+    def request_community(community_id, current_user):
+        community = Community.query.get(community_id)
+        if community:
+            db.session.execute(
+                community_request.insert().values(
+                    community_id=community_id,
+                    user_id=current_user.id
+                )
+            )
+        db.session.commit()
+
+    @staticmethod
+    def add_member(community_id, user_id):
+        community = Community.query.get(community_id)
+        if community:
+            user = User.query.get(user_id)
+            if user and user not in community.members:
+                community.members.append(user)
+                db.session.commit()
+                return True
+        return False
+
+    @staticmethod
+    def remove_request(community_id, user_id):
+        community = Community.query.get(community_id)
+        if community:
+            user = User.query.get(user_id)
+            if user and user in community.requests:
+                community.requests.remove(user)
+                db.session.commit()
+                return True
+        return False
