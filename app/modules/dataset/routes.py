@@ -487,6 +487,17 @@ def list_communities():
                            is_request=CommunityService.is_request)
 
 
+@community_bp.route('/communities/search', methods=['GET'])
+@login_required
+def search_communities():
+    query = request.args.get('query', '').strip()
+    communities = CommunityService.search_communities(query)
+    return render_template('community/search_results.html',
+                           query=query,
+                           communities=communities,
+                           current_user=current_user)
+
+
 @community_bp.route('/community/<int:community_id>', methods=['GET'])
 @login_required
 def view_community(community_id):

@@ -1,20 +1,29 @@
 {% extends "base_template.html" %}
 
-{% block title %}All Communities{% endblock %}
+{% block title %}My Communities{% endblock %}
 
 {% block content %}
 
-<h1 class="h3 mb-3">Communities</h1>
+<h1 class="h3 mb-3">My Communities</h1>
 
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Formulario de búsqueda -->
+    <form method="GET" action="{{ url_for('community.search_communities') }}" class="d-flex w-50">
+        <input type="text" name="query" class="form-control me-2" placeholder="Search communities..." required style="width: 200px;">
+        <button type="submit" class="btn btn-primary" style="white-space: nowrap;">
+            <i data-feather="search"></i> Search
+        </button>
+    </form>
+    <!-- Botón para crear comunidad -->
     <a href="{{ url_for('community.create_community') }}" class="btn btn-primary">
         <i data-feather="plus"></i> Create Community
     </a>
 </div>
 
-<h2 class="h4">My Communities</h2>
-{% if my_communities %}
-    <div class="col-12 mb-4">
+<!-- Mis comunidades -->
+<div class="col-12 mb-4">
+    <h4>My Communities</h4>
+    {% if my_communities %}
         <div class="card">
             <div class="card-body">
                 <table class="table">
@@ -65,14 +74,15 @@
                 </table>
             </div>
         </div>
-    </div>
-{% else %}
-    <p>You are not a member of any communities.</p>
-{% endif %}
+    {% else %}
+        <p>You are not a member of any community.</p>
+    {% endif %}
+</div>
 
-<h2 class="h4">All Communities</h2>
-{% if communities %}
-    <div class="col-12">
+<!-- Todas las comunidades -->
+<div class="col-12">
+    <h4>All Communities</h4>
+    {% if communities %}
         <div class="card">
             <div class="card-body">
                 <table class="table">
@@ -80,6 +90,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Role</th>
+                            <th>Options</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -101,15 +112,20 @@
                                         None
                                     {% endif %}
                                 </td>
+                                <td>
+                                    <a href="{{ url_for('community.view_community', community_id=community.id) }}">
+                                        <i data-feather="eye"></i>
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-{% else %}
-    <p>No communities available. Try creating one!</p>
-{% endif %}
+    {% else %}
+        <p>No communities found.</p>
+    {% endif %}
+</div>
 
 {% endblock %}
