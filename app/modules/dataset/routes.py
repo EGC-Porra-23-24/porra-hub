@@ -375,7 +375,7 @@ def download_all_dataset():
     # Obtener la cookie de descarga
     user_cookie = request.cookies.get("download_cookie")
     if not user_cookie:
-        user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
+        user_cookie = str(uuid.uuid4())
 
     # Crear un directorio temporal para almacenar el archivo ZIP
     temp_dir = tempfile.mkdtemp()
