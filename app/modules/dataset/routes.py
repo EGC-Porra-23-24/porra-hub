@@ -31,6 +31,9 @@ from app.modules.dataset.services import (
     DataSetService,
     DOIMappingService
 )
+from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter, JSONWriter, AFMWriter
+from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
+from app.modules.hubfile.services import HubfileService
 from app.modules.zenodo.services import ZenodoService
 
 logger = logging.getLogger(__name__)
@@ -310,62 +313,155 @@ def download_dataset(dataset_id):
     return resp
 
 
-@dataset_bp.route("/dataset/download/all", methods=["GET"])
-def download_all_dataset():
-    # Obtener la cookie de descarga
+# @dataset_bp.route("/dataset/download/all", methods=["GET"])
+# def download_all_dataset():
+#     # Obtener la cookie de descarga
+#     user_cookie = request.cookies.get("download_cookie")
+#     if not user_cookie:
+#         user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
+
+#     # Crear un directorio temporal para almacenar el archivo ZIP
+#     temp_dir = tempfile.mkdtemp()
+#     zip_path = os.path.join(temp_dir, "all_datasets.zip")
+
+#     with ZipFile(zip_path, "w") as zipf:
+#         # Obtener todos los datasets existentes (sin filtrar por usuario)
+#         datasets = dataset_service.get_all()
+
+#         # Iterar sobre todos los datasets y agregar sus archivos al ZIP
+#         for dataset in datasets:
+#             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+#             if os.path.exists(file_path):
+#                 # Agregar los archivos del dataset al ZIP
+#                 for subdir, dirs, files in os.walk(file_path):
+#                     for file in files:
+#                         full_path = os.path.join(subdir, file)
+#                         relative_path = os.path.relpath(full_path, file_path)
+#                         zipf.write(full_path, arcname=os.path.join(f"dataset_{dataset.id}", relative_path))
+#             else:
+#                 print(f"Archivo no encontrado para el dataset {dataset.id}")
+
+#     # Responder con el archivo ZIP
+#     resp = make_response(
+#         send_from_directory(
+#             temp_dir,
+#             "all_datasets.zip",
+#             as_attachment=True,
+#             mimetype="application/zip"
+#         )
+#     )
+
+#     # Establecer la cookie "download_cookie" para que no se genere nuevamente
+#     resp.set_cookie("download_cookie", user_cookie)
+
+#     # Registro de la descarga en la base de datos
+#     existing_record = DSDownloadRecord.query.filter_by(
+#         user_id=current_user.id if current_user.is_authenticated else None,
+#         download_cookie=user_cookie
+#     ).first()
+
+#     if not existing_record:
+#         # Registrar la descarga en la base de datos
+#         DSDownloadRecordService().create(
+#             user_id=current_user.id if current_user.is_authenticated else None,
+#             dataset_id=None,  # No es necesario asociar con un dataset en particular
+#             download_date=datetime.now(timezone.utc),
+#             download_cookie=user_cookie,
+#         )
+
+#     return resp
+@dataset_bp.route("/dataset/download/<int:dataset_id>/<string:format>", methods=["GET"])
+def download_dataset_format(dataset_id, format):
+    dataset = dataset_service.get_or_404(dataset_id)
+    file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, f"dataset_{dataset_id}.zip")
+    with ZipFile(zip_path, "w") as zipf:
+        for subdir, dirs, files in os.walk(file_path):
+            for file in dataset.files():
+                full_path = os.path.join(subdir, file.name)
+                with open(full_path, "r") as file_content:
+                    content = file_content.read()
+                name = f"{file.name}"
+                if format == "glencoe":
+                    hubfile = HubfileService().get_or_404(file.id)
+                    temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                    fm = UVLReader(hubfile.get_path()).transform()
+                    GlencoeWriter(temp_file.name, fm).transform()
+                    with open(temp_file.name, "r") as new_format_file:
+                        content = new_format_file.read()
+                    name = f"{hubfile.name}_glencoe.txt"
+                elif format == "dimacs":
+                    temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
+                    hubfile = HubfileService().get_by_id(file.id)
+                    fm = UVLReader(hubfile.get_path()).transform()
+                    sat = FmToPysat(fm).transform()
+                    DimacsWriter(temp_file.name, sat).transform()
+                    with open(temp_file.name, "r") as new_format_file:
+                        content = new_format_file.read()
+                    name = f"{hubfile.name}_cnf.txt"
+                elif format == "splot":
+                    hubfile = HubfileService().get_by_id(file.id)
+                    temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
+                    fm = UVLReader(hubfile.get_path()).transform()
+                    SPLOTWriter(temp_file.name, fm).transform()
+                    with open(temp_file.name, "r") as new_format_file:
+                        content = new_format_file.read()
+                    name = f"{hubfile.name}_splot.txt"
+                elif format == "json":
+                    temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                    hubfile = HubfileService().get_by_id(file.id)
+                    fm = UVLReader(hubfile.get_path()).transform()
+                    JSONWriter(temp_file.name, fm).transform()
+                    with open(temp_file.name, "r") as new_format_file:
+                        content = new_format_file.read()
+                    name = f"{hubfile.name}_json.txt"
+                elif format == "afm":
+                    temp_file = tempfile.NamedTemporaryFile(suffix='.afm', delete=False)
+                    hubfile = HubfileService().get_by_id(file.id)
+                    fm = UVLReader(hubfile.get_path()).transform()
+                    AFMWriter(temp_file.name, fm).transform()
+                    with open(temp_file.name, "r") as new_format_file:
+                        content = new_format_file.read()
+                    name = f"{hubfile.name}_afm.txt"
+                with zipf.open(name, "w") as zipfile:
+                    zipfile.write(content.encode())
     user_cookie = request.cookies.get("download_cookie")
     if not user_cookie:
-        user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
-
-    # Crear un directorio temporal para almacenar el archivo ZIP
-    temp_dir = tempfile.mkdtemp()
-    zip_path = os.path.join(temp_dir, "all_datasets.zip")
-
-    with ZipFile(zip_path, "w") as zipf:
-        # Obtener todos los datasets existentes (sin filtrar por usuario)
-        datasets = dataset_service.get_all()
-
-        # Iterar sobre todos los datasets y agregar sus archivos al ZIP
-        for dataset in datasets:
-            file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-            if os.path.exists(file_path):
-                # Agregar los archivos del dataset al ZIP
-                for subdir, dirs, files in os.walk(file_path):
-                    for file in files:
-                        full_path = os.path.join(subdir, file)
-                        relative_path = os.path.relpath(full_path, file_path)
-                        zipf.write(full_path, arcname=os.path.join(f"dataset_{dataset.id}", relative_path))
-            else:
-                print(f"Archivo no encontrado para el dataset {dataset.id}")
-
-    # Responder con el archivo ZIP
-    resp = make_response(
-        send_from_directory(
-            temp_dir,
-            "all_datasets.zip",
-            as_attachment=True,
-            mimetype="application/zip"
+        user_cookie = str(
+            uuid.uuid4()
+        )  # Generate a new unique identifier if it does not exist
+        # Save the cookie to the user's browser
+        resp = make_response(
+            send_from_directory(
+                temp_dir,
+                f"dataset_{dataset_id}.zip",
+                as_attachment=True,
+                mimetype="application/zip",
+            )
         )
-    )
-
-    # Establecer la cookie "download_cookie" para que no se genere nuevamente
-    resp.set_cookie("download_cookie", user_cookie)
-
-    # Registro de la descarga en la base de datos
+        resp.set_cookie("download_cookie", user_cookie)
+    else:
+        resp = send_from_directory(
+            temp_dir,
+            f"dataset_{dataset_id}.zip",
+            as_attachment=True,
+            mimetype="application/zip",
+        )
+    # Check if the download record already exists for this cookie
     existing_record = DSDownloadRecord.query.filter_by(
         user_id=current_user.id if current_user.is_authenticated else None,
+        dataset_id=dataset_id,
         download_cookie=user_cookie
     ).first()
-
     if not existing_record:
-        # Registrar la descarga en la base de datos
+        # Record the download in your database
         DSDownloadRecordService().create(
             user_id=current_user.id if current_user.is_authenticated else None,
-            dataset_id=None,  # No es necesario asociar con un dataset en particular
+            dataset_id=dataset_id,
             download_date=datetime.now(timezone.utc),
             download_cookie=user_cookie,
         )
-
     return resp
 
 
