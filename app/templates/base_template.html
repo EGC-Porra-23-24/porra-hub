@@ -180,24 +180,13 @@ chico sundermann">
                     <li class="nav-item dropdown">
 
                         {% if current_user.is_anonymous %}
-                        <a href="/dataset/download/all" style="margin-right: 10px;">
-                            <i data-feather="download-cloud"></i>
-                            Get all datasets!
-                        </a>
-                        <a href="/featuremodel/download/all">
-                            <i data-feather="download-cloud"></i>
-                            Get all feature models!
-                        </a>
-                        
-                        
-                        
-                        
-                        
-
+                            <a href="/dataset/download/all" style="margin-right: 10px;">
+                                <i data-feather="download-cloud"></i>
+                                Get all datasets!
+                            </a>
                             <a class="nav-link  d-none d-sm-inline-block" href="{{ url_for('auth.login') }}">Login</a>
                             <a class="nav-link  d-none d-sm-inline-block" href="{{ url_for('auth.show_signup_form') }}">Sign
                                 up</a>
-
                         {% else %}
 
                         <a class="nav-icon dropdown-toggle d-inline-block d-sm-none" href="#" data-bs-toggle="dropdown">
