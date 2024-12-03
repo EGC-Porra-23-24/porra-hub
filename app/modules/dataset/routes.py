@@ -388,16 +388,13 @@ def download_all_dataset():
         # Iterar sobre todos los datasets
         for dataset in datasets:
             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-            
             # Verificar que el directorio del dataset existe
             if os.path.exists(file_path):
                 # Crear una carpeta para el dataset dentro del ZIP (usando el ID o nombre del dataset)
                 dataset_folder = f"dataset_{dataset.id}/"
-                
                 # Iterar sobre todos los archivos del dataset usando dataset.files()
                 for file in dataset.files():  # Aquí mantengo el `for file in dataset.files()` como estaba
                     full_path = os.path.join(file_path, file.name)
-                    
                     # Verificar que el archivo existe
                     if not os.path.exists(full_path):
                         print(f"Archivo no encontrado: {full_path}")
