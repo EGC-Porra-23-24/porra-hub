@@ -110,8 +110,8 @@ class AuthenticationService(BaseService):
         token = self.generate_verification_token(user_data)
         verification_link = url_for('auth.verify_email', token=token, _external=True)
         # configuración correo que envia la verificacion
-        sender_email = "respuestaus@gmail.com"
-        sender_password = "anlmmjponsqpityu"
+        sender_email = os.getenv('VERIFICATION_EMAIL')
+        sender_password = os.getenv('VERIFICATION_EMAIL_PASSWORD')
         smtp_server = "smtp.gmail.com"
         smtp_port = 587
 
