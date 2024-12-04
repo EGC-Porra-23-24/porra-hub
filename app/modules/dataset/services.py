@@ -5,7 +5,7 @@ import shutil
 from typing import Optional
 import uuid
 
-from flask import request
+from flask import abort, request
 
 from app.modules.auth.services import AuthenticationService
 from app.modules.dataset.models import DSViewRecord, DataSet, DSMetaData
@@ -15,7 +15,8 @@ from app.modules.dataset.repositories import (
     DSDownloadRecordRepository,
     DSMetaDataRepository,
     DSViewRecordRepository,
-    DataSetRepository
+    DataSetRepository,
+    CommunityRepository
 )
 from app.modules.featuremodel.repositories import FMMetaDataRepository, FeatureModelRepository
 from app.modules.hubfile.repositories import (
@@ -91,6 +92,9 @@ class DataSetService(BaseService):
 
     def total_dataset_views(self) -> int:
         return self.dsviewrecord_repostory.total_dataset_views()
+
+    def get_all(self) -> list[DataSet]:
+        return self.repository.get_all()
 
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {
@@ -212,3 +216,44 @@ class SizeService():
             return f'{round(size / (1024 ** 2), 2)} MB'
         else:
             return f'{round(size / (1024 ** 3), 2)} GB'
+
+
+class CommunityService:
+    @staticmethod
+    def list_communities():
+        return CommunityRepository.get_all_communities()
+
+    @staticmethod
+    def get_community_by_id(community_id):
+        return CommunityRepository.get_community_by_id(community_id)
+
+    @staticmethod
+    def create_community(name, current_user):
+        if CommunityRepository.get_community_by_name(name):
+            abort(400, description="A community with this name already exists.")
+        return CommunityRepository.create_community(name, current_user)
+
+    @staticmethod
+    def update_community(community_id, new_name):
+        community = CommunityRepository.get_community_by_id(community_id)
+        if not community:
+            return None
+        community.name = new_name
+        CommunityRepository.save_community(community)
+        return community
+
+    @staticmethod
+    def remove_community(community_id):
+        CommunityRepository.delete_community(community_id)
+
+    @staticmethod
+    def is_owner(community, current_user):
+        return current_user.id in [owner.id for owner in community.owners]
+
+    @staticmethod
+    def is_member(community, current_user):
+        return current_user.id in [member.id for member in community.members]
+
+    @staticmethod
+    def is_request(community, current_user):
+        return current_user.id in [request.id for request in community.requests]
