@@ -494,7 +494,7 @@ def view_community(community_id):
 
     owners = [owner.profile.name for owner in community.owners.all()]
     members = [member.profile.name for member in community.members.all()]
-    requests = [request.profile.name for request in community.requests.all()]
+    requests = community.requests.all()
 
     return render_template('community/view_community.html',
                            community=community,
@@ -561,3 +561,35 @@ def delete_community(community_id):
         return "Forbidden", 403
     CommunityService.remove_community(community_id)
     return redirect(url_for('community.list_communities'))
+
+
+@community_bp.route('/community/<int:community_id>/request', methods=['POST'])
+@login_required
+def request_community(community_id):
+    try:
+        CommunityService.request_community(community_id, current_user)
+        flash('Request to join the community has been sent successfully.', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('community.view_community', community_id=community_id))
+
+
+@community_bp.route('/community/<int:community_id>/requests/<int:user_id>/<string:action>', methods=['POST'])
+@login_required
+def handle_request(community_id, user_id, action):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community or not CommunityService.is_owner(community, current_user):
+        flash('You do not have permission to perform this action.', 'danger')
+        return redirect(url_for('community.view_community', community_id=community_id))
+
+    if action not in ["accept", "reject"]:
+        flash('Invalid action.', 'danger')
+        return redirect(url_for('community.view_community', community_id=community_id))
+
+    success = CommunityService.handle_request(community_id, user_id, action)
+    if success:
+        flash('Request handled successfully.', 'success')
+    else:
+        flash('Failed to handle the request.', 'danger')
+
+    return redirect(url_for('community.view_community', community_id=community_id))
