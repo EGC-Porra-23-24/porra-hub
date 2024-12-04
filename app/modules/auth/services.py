@@ -37,7 +37,8 @@ class AuthenticationService(BaseService):
             password = kwargs.pop("password", None)
             name = kwargs.pop("name", None)
             surname = kwargs.pop("surname", None)
-
+            if not self.is_email_available(email):
+                return None
             if not email:
                 raise ValueError("Email is required.")
             if not password:
@@ -105,7 +106,7 @@ class AuthenticationService(BaseService):
         # geneacion token
         user_email=user_data.get("email")
         if not self.is_email_available(user_email):
-            raise ValueError("The email is already in use.") 
+            return
         token = self.generate_verification_token(user_data)
         verification_link = url_for('auth.verify_email', token=token, _external=True)
         # configuración correo que envia la verificacion
