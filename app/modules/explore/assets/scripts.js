@@ -21,6 +21,12 @@ function send_query() {
                 query: document.querySelector('#query').value,
                 publication_type: document.querySelector('#publication_type').value,
                 sorting: document.querySelector('[name="sorting"]:checked').value,
+                min_creation_date: document.querySelector('#min_creation_date').value,
+                max_creation_date: document.querySelector('#max_creation_date').value,
+                min_size: document.querySelector('#min_size').value,
+                max_size: document.querySelector('#max_size').value,
+                min_features: document.querySelector('#min_features').value,
+                max_features: document.querySelector('#max_features').value
             };
 
             console.log(document.querySelector('#publication_type').value);
