@@ -31,33 +31,41 @@ class AuthenticationService(BaseService):
     def is_email_available(self, email: str) -> bool:
         return self.repository.get_by_email(email) is None
 
-    def create_with_profile(self, email: str, **kwargs):
+    def create_with_profile(self, **kwargs):
         try:
-            # Aquí puedes incluir más validaciones si lo deseas
-            if not email:
-                raise ValueError("Email is necessary.")
+            email = kwargs.pop("email", None)
+            password = kwargs.pop("password", None)
+            name = kwargs.pop("name", None)
+            surname = kwargs.pop("surname", None)
 
-            # Solo creamos el usuario después de que haya sido verificado
+            if not email:
+                raise ValueError("Email is required.")
+            if not password:
+                raise ValueError("Password is required.")
+            if not name:
+                raise ValueError("Name is required.")
+            if not surname:
+                raise ValueError("Surname is required.")
+
             user_data = {
                 "email": email,
-                # Aquí puedes pasar otros datos del formulario, si se quieren incluir
+                "password": password
             }
 
-            # Crear el usuario en la base de datos
-            user = self.create(commit=False, email=email, **kwargs)
+            profile_data = {
+                "name": name,
+                "surname": surname,
+            }
 
-            # Asociar perfil al usuario
-            profile_data = kwargs.get("profile_data", {})
+            user = self.create(commit=False, **user_data)
             profile_data["user_id"] = user.id
             self.user_profile_repository.create(**profile_data)
-
-            # Guardamos los cambios en la base de datos
             self.repository.session.commit()
         except Exception as exc:
             self.repository.session.rollback()
             raise exc
-
         return user
+
 
     def update_profile(self, user_profile_id, form):
         if form.validate():
@@ -78,25 +86,31 @@ class AuthenticationService(BaseService):
 
     def temp_folder_by_user(self, user: User) -> str:
         return os.path.join(uploads_folder_name(), "temp", str(user.id))
-    def generate_verification_token(self, email):
+    
+    def generate_verification_token(self, user_data):
         serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        return serializer.dumps(email, salt="email-verification-salt")
+        return serializer.dumps(user_data, salt="user-registration-salt")
 
-    def verify_token(self, token, expiration=3600):
+    def verify_token(self, token):
         serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         try:
-            email = serializer.loads(token, salt="email-verification-salt", max_age=expiration)
-        except Exception:
+            user_data = serializer.loads(token, salt="user-registration-salt", max_age=3600)
+        except Exception as e:
+            print(f"Error verifying token: {e}")
             return None
-        return email
-    def send_verification_email(self, user_email):
+        
+        user=self.create_with_profile(**user_data)
+        return user
+    def send_verification_email(self, user_data):
         # geneacion token
-        token = self.generate_verification_token(user_email)
+        user_email=user_data.get("email")
+        if not self.is_email_available(user_email):
+            raise ValueError("The email is already in use.") 
+        token = self.generate_verification_token(user_data)
         verification_link = url_for('auth.verify_email', token=token, _external=True)
-
         # configuración correo que envia la verificacion
         sender_email = "respuestaus@gmail.com"
-        sender_password = "RespuestaUS237500"
+        sender_password = "anlmmjponsqpityu"
         smtp_server = "smtp.gmail.com"
         smtp_port = 587
 
