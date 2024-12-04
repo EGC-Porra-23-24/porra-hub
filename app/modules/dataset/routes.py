@@ -313,63 +313,6 @@ def download_dataset(dataset_id):
     return resp
 
 
-# @dataset_bp.route("/dataset/download/all", methods=["GET"])
-# def download_all_dataset():
-#     # Obtener la cookie de descarga
-#     user_cookie = request.cookies.get("download_cookie")
-#     if not user_cookie:
-#         user_cookie = str(uuid.uuid4())  # Generar un UUID único para la cookie de descarga
-
-#     # Crear un directorio temporal para almacenar el archivo ZIP
-#     temp_dir = tempfile.mkdtemp()
-#     zip_path = os.path.join(temp_dir, "all_datasets.zip")
-
-#     with ZipFile(zip_path, "w") as zipf:
-#         # Obtener todos los datasets existentes (sin filtrar por usuario)
-#         datasets = dataset_service.get_all()
-
-#         # Iterar sobre todos los datasets y agregar sus archivos al ZIP
-#         for dataset in datasets:
-#             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
-#             if os.path.exists(file_path):
-#                 # Agregar los archivos del dataset al ZIP
-#                 for subdir, dirs, files in os.walk(file_path):
-#                     for file in files:
-#                         full_path = os.path.join(subdir, file)
-#                         relative_path = os.path.relpath(full_path, file_path)
-#                         zipf.write(full_path, arcname=os.path.join(f"dataset_{dataset.id}", relative_path))
-#             else:
-#                 print(f"Archivo no encontrado para el dataset {dataset.id}")
-
-#     # Responder con el archivo ZIP
-#     resp = make_response(
-#         send_from_directory(
-#             temp_dir,
-#             "all_datasets.zip",
-#             as_attachment=True,
-#             mimetype="application/zip"
-#         )
-#     )
-
-#     # Establecer la cookie "download_cookie" para que no se genere nuevamente
-#     resp.set_cookie("download_cookie", user_cookie)
-
-#     # Registro de la descarga en la base de datos
-#     existing_record = DSDownloadRecord.query.filter_by(
-#         user_id=current_user.id if current_user.is_authenticated else None,
-#         download_cookie=user_cookie
-#     ).first()
-
-#     if not existing_record:
-#         # Registrar la descarga en la base de datos
-#         DSDownloadRecordService().create(
-#             user_id=current_user.id if current_user.is_authenticated else None,
-#             dataset_id=None,  # No es necesario asociar con un dataset en particular
-#             download_date=datetime.now(timezone.utc),
-#             download_cookie=user_cookie,
-#         )
-
-#     return resp
 @dataset_bp.route("/dataset/download/all", methods=["GET"])
 def download_all_dataset():
     # Obtener la cookie de descarga
@@ -384,7 +327,6 @@ def download_all_dataset():
     with ZipFile(zip_path, "w") as zipf:
         # Obtener todos los datasets existentes (sin filtrar por usuario)
         datasets = dataset_service.get_all()
-
         # Iterar sobre todos los datasets
         for dataset in datasets:
             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
@@ -393,16 +335,15 @@ def download_all_dataset():
                 # Crear una carpeta para el dataset dentro del ZIP (usando el ID o nombre del dataset)
                 dataset_folder = f"dataset_{dataset.id}/"
                 # Iterar sobre todos los archivos del dataset usando dataset.files()
-                for file in dataset.files():  # Aquí mantengo el `for file in dataset.files()` como estaba
+                for file in dataset.files():
                     full_path = os.path.join(file_path, file.name)
                     # Verificar que el archivo existe
                     if not os.path.exists(full_path):
                         print(f"Archivo no encontrado: {full_path}")
-                        continue  # Si el archivo no existe, saltamos al siguiente
-
+                        continue
                     # Obtener el Hubfile correspondiente a este archivo
                     try:
-                        hubfile = HubfileService().get_or_404(file.id)  # Aquí obtenemos el Hubfile usando file.id
+                        hubfile = HubfileService().get_or_404(file.id)
                         if not hubfile:
                             print(f"No se encontró el Hubfile para el archivo {file.name}")
                             continue
