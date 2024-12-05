@@ -15,6 +15,9 @@ from app.modules.dataset.models import (
 )
 from core.repositories.BaseRepository import BaseRepository
 
+from app import db
+from app.modules.auth.models import Community, User, community_request
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,6 +117,9 @@ class DataSetRepository(BaseRepository):
             .all()
         )
 
+    def get_all(self) -> list[DataSet]:
+        return self.model.query.all()
+
 
 class DOIMappingRepository(BaseRepository):
     def __init__(self):
@@ -121,3 +127,77 @@ class DOIMappingRepository(BaseRepository):
 
     def get_new_doi(self, old_doi: str) -> str:
         return self.model.query.filter_by(dataset_doi_old=old_doi).first()
+
+
+class CommunityRepository:
+    @staticmethod
+    def get_all_communities():
+        return Community.query.all()
+
+    @staticmethod
+    def get_community_by_id(community_id):
+        return Community.query.get(community_id)
+
+    @staticmethod
+    def get_community_by_name(name):
+        return Community.query.filter_by(name=name).first()
+
+    @staticmethod
+    def create_community(name, current_user) -> Community:
+        owners_list = [current_user]
+        new_community = Community(
+            name=name,
+            created_at=datetime.now(timezone.utc),
+            owners=owners_list,
+            members=owners_list,
+            requests=[]
+        )
+
+        db.session.add(new_community)
+        db.session.commit()
+        return new_community
+
+    @staticmethod
+    def delete_community(community_id):
+        community = Community.query.get(community_id)
+        if community:
+            db.session.delete(community)
+            db.session.commit()
+
+    @staticmethod
+    def save_community():
+        db.session.commit()
+
+    @staticmethod
+    def request_community(community_id, current_user):
+        community = Community.query.get(community_id)
+        if community:
+            db.session.execute(
+                community_request.insert().values(
+                    community_id=community_id,
+                    user_id=current_user.id
+                )
+            )
+        db.session.commit()
+
+    @staticmethod
+    def add_member(community_id, user_id):
+        community = Community.query.get(community_id)
+        if community:
+            user = User.query.get(user_id)
+            if user and user not in community.members:
+                community.members.append(user)
+                db.session.commit()
+                return True
+        return False
+
+    @staticmethod
+    def remove_request(community_id, user_id):
+        community = Community.query.get(community_id)
+        if community:
+            user = User.query.get(user_id)
+            if user and user in community.requests:
+                community.requests.remove(user)
+                db.session.commit()
+                return True
+        return False
