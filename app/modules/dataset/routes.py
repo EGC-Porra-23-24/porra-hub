@@ -294,6 +294,7 @@ def create_from_zip():
 
     return render_template("dataset/upload_zip.html", form=form)
 
+
 @dataset_bp.route("/dataset/upload/github", methods=["POST", "GET"])
 @login_required
 def create_from_github():
