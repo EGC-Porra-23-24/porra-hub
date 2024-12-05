@@ -264,7 +264,7 @@ def upload_from_github():
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"Error uploading file from GitHub: {str(e)}"}), 500
 
-      
+
 @dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
 @login_required
 def upload_from_zip():
@@ -388,7 +388,6 @@ def create_from_zip():
         return jsonify({"message": msg}), 200
 
     return render_template("dataset/upload_zip.html", form=form)
-
 
 
 @dataset_bp.route("/dataset/file/delete", methods=["POST"])
