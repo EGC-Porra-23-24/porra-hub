@@ -266,6 +266,7 @@ def upload_from_github():
     except requests.exceptions.Timeout:
         return jsonify({"error": "The request to GitHub timed out"}), 408
 
+
 @dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
 @login_required
 def upload_from_zip():
