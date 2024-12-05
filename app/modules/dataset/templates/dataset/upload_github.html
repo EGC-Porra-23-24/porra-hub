@@ -240,6 +240,8 @@
                         maxFilesize: 10, // Tamaño máximo del archivo en MB
                         acceptedFiles: '.zip,.uvl', // Tipos de archivo aceptados (zip y uvl)
                         autoProcessQueue: false, // No procesar automáticamente al añadir archivos
+                        disabled: true,
+                        clickable: false,
                         init: function () {
                             let fileList = document.getElementById('file-list');
                             let dropzoneText = document.getElementById('dropzone-text');
