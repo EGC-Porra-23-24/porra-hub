@@ -213,19 +213,22 @@ def upload_from_github():
         if file_name.endswith('.zip'):
             extracted_files = []
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                for zip_file in zip_ref.namelist():
-                    if not zip_file.endswith('/'):  # Excluir directorios
-                        extracted_file_path = os.path.join(temp_folder, zip_file)
+                for zip_info in zip_ref.infolist():
+                    if zip_info.filename.endswith('.uvl'):  # Excluir directorios
+                        extracted_filename = os.path.basename(zip_info.filename)
+                        extracted_path = os.path.join(temp_folder, extracted_filename)
 
-                        # Crear las carpetas necesarias si no existen
-                        os.makedirs(os.path.dirname(extracted_file_path), exist_ok=True)
+                        base_name, extension = os.path.splitext(extracted_filename)
+                        i = 1
+                        while os.path.exists(extracted_path):
+                            extracted_path = os.path.join(temp_folder, f"{base_name} ({i}){extension}")
+                            i += 1
 
-                        # Extraer el archivo
-                        with zip_ref.open(zip_file) as extracted_file:
-                            with open(extracted_file_path, 'wb') as f:
-                                f.write(extracted_file.read())
+                        with zip_ref.open(zip_info) as source, open(extracted_path, 'wb') as target:
+                            target.write(source.read())
 
-                        extracted_files.append(zip_file)
+                    # Agregar el nombre del archivo extraído a la lista de archivos
+                        extracted_files.append(extracted_filename)
 
             return jsonify({
                 "message": "ZIP file uploaded and extracted successfully",
