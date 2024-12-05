@@ -15,6 +15,19 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import url_for
+import threading
+
+registered_emails = set()
+expiration_time=15*60 #15 minutos
+
+def add_registered_email(email):
+    registered_emails.add(email)
+    timer = threading.Timer(expiration_time, remove_email, [email])
+    timer.start()
+
+def remove_email(email):
+    if email in registered_emails:
+        registered_emails.remove(email)
 
 class AuthenticationService(BaseService):
     def __init__(self):
@@ -30,6 +43,9 @@ class AuthenticationService(BaseService):
 
     def is_email_available(self, email: str) -> bool:
         return self.repository.get_by_email(email) is None
+    
+    def get_email_from_user_data(self, **kwargs):
+        return kwargs.pop("email", None)
 
     def create_with_profile(self, **kwargs):
         try:
@@ -96,8 +112,12 @@ class AuthenticationService(BaseService):
         serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         try:
             user_data = serializer.loads(token, salt="user-registration-salt", max_age=3600)
+            email = self.get_email_from_user_data(**user_data)
+            if email not in registered_emails:
+                return None
+            registered_emails.remove(email)
+            
         except Exception as e:
-            print(f"Error verifying token: {e}")
             return None
         
         user=self.create_with_profile(**user_data)
@@ -107,6 +127,7 @@ class AuthenticationService(BaseService):
         user_email=user_data.get("email")
         if not self.is_email_available(user_email):
             return
+        add_registered_email(user_email)
         token = self.generate_verification_token(user_data)
         verification_link = url_for('auth.verify_email', token=token, _external=True)
         # configuración correo que envia la verificacion

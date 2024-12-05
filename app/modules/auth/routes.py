@@ -6,12 +6,10 @@ from app.modules.auth.forms import SignupForm, LoginForm
 from app.modules.auth.services import AuthenticationService
 from app.modules.profile.services import UserProfileService
 
-
 authentication_service = AuthenticationService()
 user_profile_service = UserProfileService()
 
 
-@auth_bp.route("/signup/", methods=["GET", "POST"])
 @auth_bp.route("/signup/", methods=["GET", "POST"])
 def show_signup_form():
     if current_user.is_authenticated:
@@ -41,16 +39,18 @@ def show_signup_form():
 
     return render_template("auth/signup_form.html", form=form)
 
-@auth_bp.route('/verify/<token>')
+@auth_bp.route('/verify/<token>',methods=["GET", "POST"])
 def verify_email(token):
-    # Verifica el token y obtiene los datos del usuario asociados
-    user = authentication_service.verify_token(token)
+    try:
+        user = authentication_service.verify_token(token)
+        if user is None:
+            return render_template("auth/verification_failed.html", message="Email verification failed.")
+        else:
+            return render_template("auth/verification_success.html", message="Email verified and user account created.")
+    except:
+        return render_template("auth/verification_failed.html", message="Email verification failed.")
     
-    if user is None:
-        return render_template("auth/verification_failed.html", message="El enlace de verificación es inválido o ha expirado.")
-    else:
-        return render_template("auth/verification_success.html", message="Email verified and user account created.")
-    
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
