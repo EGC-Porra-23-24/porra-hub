@@ -186,7 +186,7 @@ def upload_from_github():
 
     try:
         # Descargar el archivo desde la URL raw
-        response = requests.get(raw_url)
+        response = requests.get(raw_url, timeout=15)
         response.raise_for_status()  # Si la respuesta es mala (404, 500), lanza una excepción
 
         file_name = raw_url.split('/')[-1]
@@ -263,7 +263,8 @@ def upload_from_github():
 
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"Error uploading file from GitHub: {str(e)}"}), 500
-
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "The request to GitHub timed out"}), 408
 
 @dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
 @login_required
