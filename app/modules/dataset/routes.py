@@ -169,6 +169,7 @@ def upload():
         200,
     )
 
+
 @dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
 @login_required
 def upload_from_zip():
@@ -237,7 +238,6 @@ def upload_from_zip():
             {
                 "message": "Zip uploaded and .uvl files extracted successfully",
                 "extracted_files": extracted_files,
-                
             }
         ),
         200,
