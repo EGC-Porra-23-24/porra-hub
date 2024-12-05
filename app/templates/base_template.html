@@ -92,32 +92,42 @@ chico sundermann">
 
                 {% else %}
 
-                    <li class="sidebar-header">
-                        Datasets
-                        <li class="sidebar-item {{ 'active' if request.endpoint == 'dataset.create_dataset' else '' }} d-flex align-items-center">
-                            <a class="sidebar-link d-flex align-items-center" href="{{ url_for('dataset.create_dataset') }}">
-                                <span class="align-middle">Upload dataset</span>
-                            </a>
-                            <!-- Botón desplegable con el mismo formato -->
-                            <div class="dropdown ms-auto">
-                                <button class="btn btn-link sidebar-link p-0 align-middle d-flex align-items-center" id="uploadDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration: none;">
-                                    <i class="ms-1" data-feather="chevron-down"></i>
-                                </button>
-                        
-                                <!-- Menú desplegable con las opciones -->
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="uploadDropdown">
-                                    
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('dataset.create_from_zip') }}">
-                                            Upload from ZIP
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('dataset.create_from_github') }}">
-                                            Upload github
-                                    </li>
-                                </ul>
-                            </div>
+                <li class="sidebar-header">
+                    Datasets
+
+                </li>
+                
+                <li class="sidebar-item {{ 'active' if request.endpoint == 'dataset.create_dataset' else '' }} d-flex align-items-center">
+                    <a class="sidebar-link d-flex align-items-center" href="{{ url_for('dataset.create_dataset') }}">
+                        <!-- Icono de Feather para "upload" -->
+                        <i class="align-middle" data-feather="upload"></i> 
+                        <span class="align-middle">Upload dataset</span>
+                    </a>
+                
+                    <!-- Botón desplegable con el mismo formato -->
+                    <div class="dropdown ms-auto">
+                        <button class="btn btn-link sidebar-link p-0 align-middle d-flex align-items-center" 
+                                id="uploadDropdown" data-bs-toggle="dropdown" aria-expanded="false" 
+                                style="text-decoration: none;">
+                            <!-- Icono de Feather para el desplegable -->
+                            <i class="ms-1" data-feather="chevron-down"></i>
+                        </button>
+                
+                        <!-- Menú desplegable con las opciones -->
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="uploadDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('dataset.create_from_zip') }}">
+                                    Upload from ZIP
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('dataset.create_from_github') }}">
+                                    Upload from Github
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
                           
                     <li class="sidebar-item {{ 'active' if request.endpoint == 'dataset.list_dataset' else '' }}">
                         <a class="sidebar-link" href="{{ url_for('dataset.list_dataset') }}">
