@@ -109,7 +109,7 @@ class DataSetService(BaseService):
                 author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
                 dsmetadata.authors.append(author)
 
-            dataset = self.create(commit=False, 
+            dataset = self.create(commit=False,
                                   user_id=current_user.id,
                                   ds_meta_data_id=dsmetadata.id,
                                   community_id=form.community.data if form.community.data else None,)
