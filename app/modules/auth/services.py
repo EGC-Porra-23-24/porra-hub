@@ -17,19 +17,24 @@ from email.mime.text import MIMEText
 from flask import url_for
 import threading
 
+
 registered_emails = set()
-expiration_time=15*60 #15 minutos
+expiration_time = 15 * 60
+
 
 def add_registered_email(email):
     registered_emails.add(email)
     timer = threading.Timer(expiration_time, remove_email, [email])
     timer.start()
 
+
 def remove_email(email):
     if email in registered_emails:
         registered_emails.remove(email)
 
+
 class AuthenticationService(BaseService):
+
     def __init__(self):
         super().__init__(UserRepository())
         self.user_profile_repository = UserProfileRepository()
@@ -43,7 +48,7 @@ class AuthenticationService(BaseService):
 
     def is_email_available(self, email: str) -> bool:
         return self.repository.get_by_email(email) is None
-    
+
     def get_email_from_user_data(self, **kwargs):
         return kwargs.pop("email", None)
 
@@ -53,6 +58,7 @@ class AuthenticationService(BaseService):
             password = kwargs.pop("password", None)
             name = kwargs.pop("name", None)
             surname = kwargs.pop("surname", None)
+
             if not self.is_email_available(email):
                 return None
             if not email:
@@ -66,7 +72,7 @@ class AuthenticationService(BaseService):
 
             user_data = {
                 "email": email,
-                "password": password
+                "password": password,
             }
 
             profile_data = {
@@ -78,11 +84,11 @@ class AuthenticationService(BaseService):
             profile_data["user_id"] = user.id
             self.user_profile_repository.create(**profile_data)
             self.repository.session.commit()
+
         except Exception as exc:
             self.repository.session.rollback()
             raise exc
         return user
-
 
     def update_profile(self, user_profile_id, form):
         if form.validate():
@@ -103,7 +109,7 @@ class AuthenticationService(BaseService):
 
     def temp_folder_by_user(self, user: User) -> str:
         return os.path.join(uploads_folder_name(), "temp", str(user.id))
-    
+
     def generate_verification_token(self, user_data):
         serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         return serializer.dumps(user_data, salt="user-registration-salt")
@@ -113,33 +119,39 @@ class AuthenticationService(BaseService):
         try:
             user_data = serializer.loads(token, salt="user-registration-salt", max_age=3600)
             email = self.get_email_from_user_data(**user_data)
+
             if email not in registered_emails:
                 return None
             registered_emails.remove(email)
-            
-        except Exception as e:
+
+        except Exception as exc:
+            print(f"Error verifying token: {exc}")
             return None
-        
-        user=self.create_with_profile(**user_data)
+
+        user = self.create_with_profile(**user_data)
         return user
+
     def send_verification_email(self, user_data):
-        # geneacion token
-        user_email=user_data.get("email")
+        user_email = user_data.get("email")
+
         if not self.is_email_available(user_email):
             return
         add_registered_email(user_email)
+
         token = self.generate_verification_token(user_data)
+
         verification_link = url_for('auth.verify_email', token=token, _external=True)
-        # configuración correo que envia la verificacion
         sender_email = os.getenv('VERIFICATION_EMAIL')
         sender_password = os.getenv('VERIFICATION_EMAIL_PASSWORD')
+
         smtp_server = "smtp.gmail.com"
         smtp_port = 587
-
         msg = MIMEMultipart()
+
         msg['From'] = sender_email
         msg['To'] = user_email
         msg['Subject'] = "[UvlHub] Email verify"
+
         body = f"Hi, please verify your email with this link: {verification_link}"
         msg.attach(MIMEText(body, 'plain'))
 
@@ -147,8 +159,10 @@ class AuthenticationService(BaseService):
             server = smtplib.SMTP(smtp_server, smtp_port)
             server.starttls()
             server.login(sender_email, sender_password)
+
             server.sendmail(sender_email, user_email, msg.as_string())
             server.quit()
             print("Verification email sent successfully")
+
         except Exception as e:
             print(f"Failed sending email: {e}")

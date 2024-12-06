@@ -4,6 +4,7 @@ from app.modules.auth.services import AuthenticationService
 from app.modules.auth.repositories import UserRepository
 from app.modules.profile.repositories import UserProfileRepository
 
+
 @pytest.fixture(scope="module")
 def test_client(test_client):
     """
@@ -19,37 +20,39 @@ def test_client(test_client):
 
 def test_login_success(test_client):
     response = test_client.post(
-        "/login", data=dict(email="test@example.com", password="test1234"), follow_redirects=True
+        "/login",
+        data=dict(email="test@example.com", password="test1234"),
+        follow_redirects=True
     )
-
     assert response.request.path != url_for("auth.login"), "Login was unsuccessful"
-
     test_client.get("/logout", follow_redirects=True)
 
 
 def test_login_unsuccessful_bad_email(test_client):
     response = test_client.post(
-        "/login", data=dict(email="bademail@example.com", password="test1234"), follow_redirects=True
+        "/login",
+        data=dict(email="bademail@example.com", password="test1234"),
+        follow_redirects=True
     )
-
     assert response.request.path == url_for("auth.login"), "Login was unsuccessful"
-
     test_client.get("/logout", follow_redirects=True)
 
 
 def test_login_unsuccessful_bad_password(test_client):
     response = test_client.post(
-        "/login", data=dict(email="test@example.com", password="basspassword"), follow_redirects=True
+        "/login",
+        data=dict(email="test@example.com", password="basspassword"),
+        follow_redirects=True
     )
-
     assert response.request.path == url_for("auth.login"), "Login was unsuccessful"
-
     test_client.get("/logout", follow_redirects=True)
 
 
 def test_signup_user_no_name(test_client):
     response = test_client.post(
-        "/signup", data=dict(surname="Foo", email="test@example.com", password="test1234"), follow_redirects=True
+        "/signup",
+        data=dict(surname="Foo", email="test@example.com", password="test1234"),
+        follow_redirects=True
     )
     assert response.request.path == url_for("auth.show_signup_form"), "Signup was unsuccessful"
     assert b"This field is required" in response.data, response.data
@@ -58,7 +61,9 @@ def test_signup_user_no_name(test_client):
 def test_signup_user_unsuccessful(test_client):
     email = "test@example.com"
     response = test_client.post(
-        "/signup", data=dict(name="Test", surname="Foo", email=email, password="test1234"), follow_redirects=True
+        "/signup",
+        data=dict(name="Test", surname="Foo", email=email, password="test1234"),
+        follow_redirects=True
     )
     assert response.request.path == url_for("auth.show_signup_form"), "Signup was unsuccessful"
     assert f"Email {email} in use".encode("utf-8") in response.data
@@ -67,11 +72,13 @@ def test_signup_user_unsuccessful(test_client):
 def test_send_verification_email_successful(test_client):
     email = "verificationtest@example.com"
     response = test_client.post(
-        "/signup", data=dict(name="Verification", surname="Test", email=email, password="test1234"), follow_redirects=True
+        "/signup",
+        data=dict(name="Verification", surname="Test", email=email, password="test1234"),
+        follow_redirects=True
     )
     response_html = response.data.decode('utf-8')
-    print 
     assert 'Verification Email Sent' in response_html, "Signup was unsuccessful"
+
 
 def test_verification_token_successful(test_client):
     user_data = {
@@ -86,14 +93,18 @@ def test_verification_token_successful(test_client):
     response = test_client.post(url, data=dict(), follow_redirects=True)
     response_html = response.data.decode('utf-8')
     assert 'Verification Successful' in response_html, "Verification was unsuccessful"
-    
-def test_send_verification_email_unsuccessful_registered_email(test_client):
+
+
+def test_send_verification_email_failed_existing_email(test_client):
     email = "verificationtest@example.com"
     response = test_client.post(
-        "/signup", data=dict(name="Verification", surname="Test", email=email, password="test1234"), follow_redirects=True
+        "/signup",
+        data=dict(name="Verification", surname="Test", email=email, password="test1234"),
+        follow_redirects=True
     )
     response_html = response.data.decode('utf-8')
     assert 'Verification Email Sent' not in response_html, "Signup was unsuccessful"
+
 
 def test_verification_token_failed_not_registered_email(test_client):
     user_data = {
@@ -109,6 +120,7 @@ def test_verification_token_failed_not_registered_email(test_client):
     response_html = response.data.decode('utf-8')
     assert 'Verification Failed' in response_html, "Verification was successful"
 
+
 def test_verification_token_failed_wrong_token(test_client):
     token = '.edadsfhglpfphlpdhlhldhldhdhdrwfs'
     url = f"/verify/{token}"
@@ -117,7 +129,7 @@ def test_verification_token_failed_wrong_token(test_client):
     assert 'Verification Failed' in response_html, "Verification was successful"
 
 
-def test_service_create_with_profie_success(clean_database):
+def test_service_create_with_profile_success(clean_database):
     data = {
         "name": "Test",
         "surname": "Foo",
