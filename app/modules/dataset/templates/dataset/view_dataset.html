@@ -93,6 +93,20 @@
 
                 </div>
 
+                {% if dataset.community %}
+                <div class="row mb-2">
+                    <div class="col-md-4 col-12">
+                        <span class="text-secondary">Community</span>
+                    </div>
+                    <div class="col-md-8 col-12">
+                        <a href="{{ url_for('community.view_community', community_id=dataset.community.id) }}">
+                            <span>{{ dataset.community.name }}</span>
+                        </a>
+                    </div>
+                    
+                </div>
+                {% endif %}
+
                 {% if dataset.ds_meta_data.publication_doi %}
                 <div class="row mb-2">
                     <div class="col-md-4 col-12">
