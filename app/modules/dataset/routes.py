@@ -542,12 +542,25 @@ community_service = CommunityService()
 @login_required
 def list_communities():
     communities = CommunityService.list_communities()
+    my_communities = CommunityService.get_communities_by_member(current_user)
     return render_template('community/list_communities.html',
+                           my_communities=my_communities,
                            communities=communities,
                            current_user=current_user,
                            is_owner=CommunityService.is_owner,
                            is_member=CommunityService.is_member,
                            is_request=CommunityService.is_request)
+
+
+@community_bp.route('/communities/search', methods=['GET'])
+@login_required
+def search_communities():
+    query = request.args.get('query', '').strip()
+    communities = CommunityService.search_communities(query)
+    return render_template('community/search_results.html',
+                           query=query,
+                           communities=communities,
+                           current_user=current_user)
 
 
 @community_bp.route('/community/<int:community_id>', methods=['GET'])

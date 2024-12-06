@@ -17,6 +17,7 @@ from core.repositories.BaseRepository import BaseRepository
 
 from app import db
 from app.modules.auth.models import Community, User, community_request
+from app.modules.auth.models import community_members
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,20 @@ class CommunityRepository:
     @staticmethod
     def get_community_by_id(community_id):
         return Community.query.get(community_id)
+
+    @staticmethod
+    def get_communities_by_member(current_user_id):
+        return (
+            Community.query
+            .join(community_members, community_members.c.community_id == Community.id)
+            .filter(community_members.c.user_id == current_user_id)
+            .all()
+        )
+
+    @staticmethod
+    def search_by_name(query):
+        search = f"%{query}%"
+        return Community.query.filter(Community.name.ilike(search)).all()
 
     @staticmethod
     def get_community_by_name(name):
