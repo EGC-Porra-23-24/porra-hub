@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from flask import request
+from flask import request, url_for
 from sqlalchemy import Enum as SQLAlchemyEnum
 
 from app import db
@@ -130,6 +130,10 @@ class DataSet(db.Model):
             'files_count': self.get_files_count(),
             'total_size_in_bytes': self.get_file_total_size(),
             'total_size_in_human_format': self.get_file_total_size_for_human(),
+            'community_name': self.community.name if self.community else None,
+            'community_id': self.community_id if self.community else None,
+            'community_url': url_for('community.view_community',
+                                     community_id=self.community_id, _external=True) if self.community else None
         }
 
     def __repr__(self):
