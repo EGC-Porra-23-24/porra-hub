@@ -96,45 +96,90 @@ class DataSetService(BaseService):
     def get_all(self) -> list[DataSet]:
         return self.repository.get_all()
 
+    def get_all_by_community(community_id):
+        return DataSetRepository.get_all_by_community(community_id=community_id)
+
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {
             "name": f"{current_user.profile.surname}, {current_user.profile.name}",
             "affiliation": current_user.profile.affiliation,
             "orcid": current_user.profile.orcid,
         }
+
         try:
-            logger.info(f"Creating dsmetadata...: {form.get_dsmetadata()}")
-            dsmetadata = self.dsmetadata_repository.create(**form.get_dsmetadata())
+            logger.info(f"Creating DSMetaData with data: {form.get_dsmetadata()}")
+            # Crear DSMetaData
+
+            dsmetadata_data = form.get_dsmetadata()
+            dsmetadata_data.pop('community_id', None)
+            dsmetadata = self.dsmetadata_repository.create(**dsmetadata_data)
+
+            # Añadir el autor principal y otros autores
             for author_data in [main_author] + form.get_authors():
-                author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
+                author = self.author_repository.create(
+                    commit=False,
+                    ds_meta_data_id=dsmetadata.id,
+                    **author_data
+                )
                 dsmetadata.authors.append(author)
 
-            dataset = self.create(commit=False, user_id=current_user.id, ds_meta_data_id=dsmetadata.id)
+            # Crear el DataSet principal
+            dataset = self.create(
+                commit=False,
+                user_id=current_user.id,
+                ds_meta_data_id=dsmetadata.id,
+                community_id=form.community.data if form.community.data else None
+            )
 
+            # Procesar cada modelo de características
             for feature_model in form.feature_models:
-                uvl_filename = feature_model.uvl_filename.data
-                fmmetadata = self.fmmetadata_repository.create(commit=False, **feature_model.get_fmmetadata())
+                # Crear metadata del modelo de características
+                fmmetadata = self.fmmetadata_repository.create(
+                    commit=False,
+                    **feature_model.get_fmmetadata()
+                )
+
+                # Agregar autores al modelo de características
                 for author_data in feature_model.get_authors():
-                    author = self.author_repository.create(commit=False, fm_meta_data_id=fmmetadata.id, **author_data)
+                    author = self.author_repository.create(
+                        commit=False,
+                        fm_meta_data_id=fmmetadata.id,
+                        **author_data
+                    )
                     fmmetadata.authors.append(author)
 
+                # Crear el modelo de características y asociarlo al dataset
                 fm = self.feature_model_repository.create(
-                    commit=False, data_set_id=dataset.id, fm_meta_data_id=fmmetadata.id
+                    commit=False,
+                    data_set_id=dataset.id,
+                    fm_meta_data_id=fmmetadata.id
                 )
 
-                # associated files in feature model
+                # Procesar los archivos asociados al modelo de características
+                uvl_filename = feature_model.uvl_filename.data
                 file_path = os.path.join(current_user.temp_folder(), uvl_filename)
+
+                # Calcular el checksum y tamaño del archivo
                 checksum, size = calculate_checksum_and_size(file_path)
 
+                # Crear el archivo en el repositorio
                 file = self.hubfilerepository.create(
-                    commit=False, name=uvl_filename, checksum=checksum, size=size, feature_model_id=fm.id
+                    commit=False,
+                    name=uvl_filename,
+                    checksum=checksum,
+                    size=size,
+                    feature_model_id=fm.id
                 )
                 fm.files.append(file)
+
+            # Confirmar todos los cambios realizados
             self.repository.session.commit()
+
         except Exception as exc:
-            logger.info(f"Exception creating dataset from form...: {exc}")
+            logger.error(f"Exception creating dataset from form: {exc}", exc_info=True)
             self.repository.session.rollback()
             raise exc
+
         return dataset
 
     def update_dsmetadata(self, id, **kwargs):
@@ -230,6 +275,10 @@ class CommunityService:
     @staticmethod
     def get_communities_by_member(current_user):
         return CommunityRepository.get_communities_by_member(current_user.id)
+
+    @staticmethod
+    def get_communities_by_owner(current_user):
+        return CommunityRepository.get_communities_by_owner(current_user.id)
 
     @staticmethod
     def search_communities(query):

@@ -57,6 +57,7 @@ class FeatureModelForm(FlaskForm):
 class DataSetForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired()])
     desc = TextAreaField("Description", validators=[DataRequired()])
+    community = SelectField("Community", coerce=int, validators=[Optional()])
     publication_type = SelectField(
         "Publication type",
         choices=[(pt.value, pt.name.replace("_", " ").title()) for pt in PublicationType],
@@ -81,6 +82,7 @@ class DataSetForm(FlaskForm):
             "publication_doi": self.publication_doi.data,
             "dataset_doi": self.dataset_doi.data,
             "tags": self.tags.data,
+            "community_id": self.community.data,
         }
 
     def convert_publication_type(self, value):

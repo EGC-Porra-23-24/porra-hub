@@ -1,6 +1,6 @@
 import os
 import shutil
-from app.modules.auth.models import User
+from app.modules.auth.models import Community, User
 from app.modules.featuremodel.models import FMMetaData, FeatureModel
 from app.modules.hubfile.models import Hubfile
 from core.seeders.BaseSeeder import BaseSeeder
@@ -56,11 +56,20 @@ class DataSetSeeder(BaseSeeder):
         ]
         self.seed(authors)
 
-        # Create DataSet instances
+        # Retrieve communities
+        community1 = Community.query.filter_by(name='Data Science Enthusiasts').first()
+        community2 = Community.query.filter_by(name='AI Researchers').first()
+        community3 = Community.query.filter_by(name='Python Developers').first()
+
+        if not community1 or not community2 or not community3:
+            raise Exception("Communities not found. Please seed communities first.")
+
+        # Create DataSet instances and assign communities
         datasets = [
             DataSet(
                 user_id=user1.id if i % 2 == 0 else user2.id,
                 ds_meta_data_id=seeded_ds_meta_data[i].id,
+                community_id=community1.id if i % 3 == 0 else community2.id if i % 3 == 1 else community3.id,
                 created_at=datetime.now(timezone.utc)
             ) for i in range(4)
         ]
