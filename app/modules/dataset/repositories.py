@@ -120,6 +120,9 @@ class DataSetRepository(BaseRepository):
     def get_all(self) -> list[DataSet]:
         return self.model.query.all()
 
+    def get_all_by_community(community_id):
+        return DataSet.query.filter_by(community_id=community_id)
+
 
 class DOIMappingRepository(BaseRepository):
     def __init__(self):

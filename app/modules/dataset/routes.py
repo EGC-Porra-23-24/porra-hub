@@ -576,6 +576,9 @@ def view_community(community_id):
     owners = [owner.profile.name for owner in community.owners.all()]
     members = [member.profile.name for member in community.members.all()]
     requests = community.requests.all()
+    datasets = DataSetService.get_all_by_community(community_id=community_id)
+
+    print(datasets[0].created_at)
 
     return render_template('community/view_community.html',
                            community=community,
@@ -583,6 +586,7 @@ def view_community(community_id):
                            owners=owners,
                            members=members,
                            requests=requests,
+                           datasets=datasets,
                            is_owner=CommunityService.is_owner,
                            is_member=CommunityService.is_member,
                            is_request=CommunityService.is_request)

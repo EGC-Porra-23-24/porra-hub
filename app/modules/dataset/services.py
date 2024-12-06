@@ -96,6 +96,9 @@ class DataSetService(BaseService):
     def get_all(self) -> list[DataSet]:
         return self.repository.get_all()
 
+    def get_all_by_community(community_id):
+        return DataSetRepository.get_all_by_community(community_id=community_id)
+
     def create_from_form(self, form, current_user) -> DataSet:
         main_author = {
             "name": f"{current_user.profile.surname}, {current_user.profile.name}",
