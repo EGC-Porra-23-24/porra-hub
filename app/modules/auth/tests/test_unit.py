@@ -1,4 +1,5 @@
 import pytest
+import secrets
 from flask import url_for
 from app.modules.auth.services import AuthenticationService
 from app.modules.auth.repositories import UserRepository
@@ -122,7 +123,7 @@ def test_verification_token_failed_not_registered_email(test_client):
 
 
 def test_verification_token_failed_wrong_token(test_client):
-    token = '.edadsfhglpfphlpdhlhldhldhdhdrwfs'
+    token = secrets.token_hex(32)
     url = f"/verify/{token}"
     response = test_client.post(url, data=dict(), follow_redirects=True)
     response_html = response.data.decode('utf-8')
