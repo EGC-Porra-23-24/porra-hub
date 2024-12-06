@@ -109,7 +109,10 @@ class DataSetService(BaseService):
                 author = self.author_repository.create(commit=False, ds_meta_data_id=dsmetadata.id, **author_data)
                 dsmetadata.authors.append(author)
 
-            dataset = self.create(commit=False, user_id=current_user.id, ds_meta_data_id=dsmetadata.id)
+            dataset = self.create(commit=False, 
+                                  user_id=current_user.id,
+                                  ds_meta_data_id=dsmetadata.id,
+                                  community_id=form.community.data if form.community.data else None,)
 
             for feature_model in form.feature_models:
                 uvl_filename = feature_model.uvl_filename.data
@@ -230,6 +233,10 @@ class CommunityService:
     @staticmethod
     def get_communities_by_member(current_user):
         return CommunityRepository.get_communities_by_member(current_user.id)
+
+    @staticmethod
+    def get_communities_by_owner(current_user):
+        return CommunityRepository.get_communities_by_owner(current_user.id)
 
     @staticmethod
     def search_communities(query):

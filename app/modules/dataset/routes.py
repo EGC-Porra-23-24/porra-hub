@@ -55,7 +55,10 @@ ds_view_record_service = DSViewRecordService()
 @dataset_bp.route("/dataset/upload", methods=["GET", "POST"])
 @login_required
 def create_dataset():
+    communities = community_service.get_communities_by_owner(current_user)    
+
     form = DataSetForm()
+    form.community.choices = [(c.id, c.name) for c in communities]
     if request.method == "POST":
 
         dataset = None

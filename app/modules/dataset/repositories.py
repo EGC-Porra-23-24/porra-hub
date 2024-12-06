@@ -16,8 +16,7 @@ from app.modules.dataset.models import (
 from core.repositories.BaseRepository import BaseRepository
 
 from app import db
-from app.modules.auth.models import Community, User, community_request
-from app.modules.auth.models import community_members
+from app.modules.auth.models import Community, User, community_request, community_members, community_owners
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +146,14 @@ class CommunityRepository:
             .filter(community_members.c.user_id == current_user_id)
             .all()
         )
+
+    @staticmethod
+    def get_communities_by_owner(current_user_id):
+        return (
+            Community.query
+            .join(community_owners, community_owners.c.community_id == Community.id)
+            .filter(community_owners.c.user_id == current_user_id)
+            .all())
 
     @staticmethod
     def search_by_name(query):
