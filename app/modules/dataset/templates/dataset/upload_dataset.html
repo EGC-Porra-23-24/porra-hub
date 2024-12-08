@@ -192,6 +192,20 @@
 
                         </div>
 
+                        <h1 class="h3 mb-3 mt-4">
+                            Community
+                        </h1>
+
+                        <div class="col-lg-6 col-12 mb-3">
+                            <label class="form-label">Select Community (Optional)</label>
+                            <select class="form-control" name="community">
+                                <option value="">No Community</option>
+                                {% for community_id, community_name in form.community.choices %}
+                                    <option value="{{ community_id }}">{{ community_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
                     </div>
 
                 </div>

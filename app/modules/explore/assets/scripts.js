@@ -60,6 +60,7 @@ function send_query() {
 
 
                     data.forEach(dataset => {
+                        console.log(dataset.url)
                         let card = document.createElement('div');
                         card.className = 'col-12';
                         card.innerHTML = `
@@ -98,8 +99,21 @@ function send_query() {
                                                 <p class="p-0 m-0">${author.name}${author.affiliation ? ` (${author.affiliation})` : ''}${author.orcid ? ` (${author.orcid})` : ''}</p>
                                             `).join('')}
                                         </div>
-
                                     </div>
+
+                                    ${dataset.community_id ? `
+                                    <div class="row mb-2">
+                                        <div class="col-md-4 col-12">
+                                            <span class="text-secondary">
+                                                Community
+                                            </span>
+                                        </div>
+                                        <div class="col-md-8 col-12">
+                                            <a href="${dataset.community_url}">
+                                                ${dataset.community_name}
+                                            </a>
+                                        </div>
+                                    </div>`: ''}
 
                                     <div class="row mb-2">
 

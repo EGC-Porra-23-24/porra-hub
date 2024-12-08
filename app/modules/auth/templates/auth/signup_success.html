@@ -1,0 +1,25 @@
+{% extends "base_template.html" %}
+
+{% block title %}Verification Email Sent{% endblock %}
+
+{% block content %}
+
+<h1 class="h2 text-warning"><b>Verification Email Sent</b></h1>
+
+<div class="alert alert-warning mt-4">
+    <p>Thank you for signing up! A verification email has been sent to your registered email address.</p>
+</div>
+
+<div class="mt-3">
+    <p>Please check your inbox and follow the instructions to verify your email address and complete the registration process.</p>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Go to Login</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('auth.scripts') }}"></script>
+{% endblock %}

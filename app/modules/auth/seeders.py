@@ -41,6 +41,9 @@ class AuthSeeder(BaseSeeder):
 
 
 class CommunitySeeder(BaseSeeder):
+
+    priority = 1
+
     def run(self):
         users = User.query.all()
 
