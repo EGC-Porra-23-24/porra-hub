@@ -14,6 +14,7 @@ from app.modules.dataset.repositories import (
     DOIMappingRepository,
     DSDownloadRecordRepository,
     DSMetaDataRepository,
+    DSMetricsRepository,
     DSViewRecordRepository,
     DataSetRepository,
     CommunityRepository
@@ -37,6 +38,22 @@ def calculate_checksum_and_size(file_path):
         return hash_md5, file_size
 
 
+def calculate_features(file_path):
+    with open(file_path, 'r') as file:
+        # Counts features by counting the number of lines with an odd number of lines at the start
+        odd_tabs_lines = 0
+        while file.readline() != 'features\n':
+            pass
+        for line in file.readlines():
+            if line == '\n':
+                # Breakpoint
+                return odd_tabs_lines
+            n_tabs = len(line) - len(line.lstrip('\t'))
+            if (n_tabs % 2 == 1):
+                odd_tabs_lines += 1
+    return odd_tabs_lines
+
+
 class DataSetService(BaseService):
     def __init__(self):
         super().__init__(DataSetRepository())
@@ -44,6 +61,7 @@ class DataSetService(BaseService):
         self.author_repository = AuthorRepository()
         self.dsmetadata_repository = DSMetaDataRepository()
         self.fmmetadata_repository = FMMetaDataRepository()
+        self.dsmetrics_repository = DSMetricsRepository()
         self.dsdownloadrecord_repository = DSDownloadRecordRepository()
         self.hubfiledownloadrecord_repository = HubfileDownloadRecordRepository()
         self.hubfilerepository = HubfileRepository()
@@ -111,6 +129,8 @@ class DataSetService(BaseService):
 
             dataset = self.create(commit=False, user_id=current_user.id, ds_meta_data_id=dsmetadata.id)
 
+            number_of_models = 0
+            number_of_features = 0
             for feature_model in form.feature_models:
                 uvl_filename = feature_model.uvl_filename.data
                 fmmetadata = self.fmmetadata_repository.create(commit=False, **feature_model.get_fmmetadata())
@@ -125,11 +145,17 @@ class DataSetService(BaseService):
                 # associated files in feature model
                 file_path = os.path.join(current_user.temp_folder(), uvl_filename)
                 checksum, size = calculate_checksum_and_size(file_path)
+                number_of_features += calculate_features(file_path)
 
                 file = self.hubfilerepository.create(
                     commit=False, name=uvl_filename, checksum=checksum, size=size, feature_model_id=fm.id
                 )
                 fm.files.append(file)
+                number_of_models += 1
+
+            dsmetrics = self.dsmetrics_repository.create(number_of_models=number_of_models,
+                                                         number_of_features=number_of_features)
+            dsmetadata.ds_metrics_id = dsmetrics.id
             self.repository.session.commit()
         except Exception as exc:
             logger.info(f"Exception creating dataset from form...: {exc}")
