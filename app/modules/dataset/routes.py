@@ -384,102 +384,107 @@ def download_all_dataset():
     if not user_cookie:
         user_cookie = str(uuid.uuid4())
 
-    # Variable para verificar si se han añadido archivos al ZIP
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, "all_datasets.zip")
+
     files_added = False
 
-    # Crear el archivo ZIP en la ubicación actual (no en un directorio temporal)
-    zip_path = "all_datasets.zip"
-
     with ZipFile(zip_path, "w") as zipf:
-        # Obtener todos los datasets existentes
-        datasets = dataset_service.get_all()  # Obtener todos los datasets
-        # Iterar sobre todos los datasets
+        datasets = dataset_service.get_all()
+
         for dataset in datasets:
             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+
             # Verificar que el directorio del dataset existe
             if os.path.exists(file_path):
                 # Crear una carpeta para el dataset dentro del ZIP (usando el ID o nombre del dataset)
                 dataset_folder = f"dataset_{dataset.id}/"
+
                 # Iterar sobre todos los archivos del dataset usando dataset.files()
                 for file in dataset.files():
                     full_path = os.path.join(file_path, file.name)
+
                     # Verificar que el archivo existe
-                    if os.path.exists(full_path):
-                        # Obtener el Hubfile correspondiente a este archivo
-                        try:
-                            hubfile = HubfileService().get_or_404(file.id)
-                            if not hubfile:
-                                print(f"No se encontró el Hubfile para el archivo {file.name}")
-                                continue
-                        except Exception as e:
-                            print(f"Error al obtener Hubfile para {file.name}: {str(e)}")
-                            continue
-
-                        # Convertir cada archivo a los formatos deseados
-                        for format in ["glencoe", "dimacs", "splot", "json", "afm", "uvl"]:
-                            content = ""
-                            name = f"{hubfile.name}_{format}.txt"
-
-                            # Realizar la conversión según el formato
-                            if format == "glencoe":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
-                                fm = UVLReader(hubfile.get_path()).transform()
-                                GlencoeWriter(temp_file.name, fm).transform()
-                                with open(temp_file.name, "r") as new_format_file:
-                                    content = new_format_file.read()
-                                name = f"{hubfile.name}_glencoe.txt"
-                            elif format == "dimacs":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
-                                fm = UVLReader(hubfile.get_path()).transform()
-                                sat = FmToPysat(fm).transform()
-                                DimacsWriter(temp_file.name, sat).transform()
-                                with open(temp_file.name, "r") as new_format_file:
-                                    content = new_format_file.read()
-                                name = f"{hubfile.name}_cnf.txt"
-                            elif format == "splot":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
-                                fm = UVLReader(hubfile.get_path()).transform()
-                                SPLOTWriter(temp_file.name, fm).transform()
-                                with open(temp_file.name, "r") as new_format_file:
-                                    content = new_format_file.read()
-                                name = f"{hubfile.name}_splot.txt"
-                            elif format == "json":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
-                                fm = UVLReader(hubfile.get_path()).transform()
-                                JSONWriter(temp_file.name, fm).transform()
-                                with open(temp_file.name, "r") as new_format_file:
-                                    content = new_format_file.read()
-                                name = f"{hubfile.name}_json.txt"
-                            elif format == "afm":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.afm', delete=False)
-                                fm = UVLReader(hubfile.get_path()).transform()
-                                AFMWriter(temp_file.name, fm).transform()
-                                with open(temp_file.name, "r") as new_format_file:
-                                    content = new_format_file.read()
-                                name = f"{hubfile.name}_afm.txt"
-                            elif format == "uvl":
-                                # Para UVL no hacemos transformación adicional, solo agregamos el archivo original
-                                content = open(full_path, "r").read()
-                                name = f"{file.name}_uvl.txt"
-
-                            # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
-                            zipf.writestr(os.path.join(dataset_folder, name), content)
-                            files_added = True  # Marcamos que se ha añadido al menos un archivo
-                    else:
+                    if not os.path.exists(full_path):
                         print(f"Archivo no encontrado: {full_path}")
+                        continue  # Si el archivo no existe, continuar con el siguiente archivo
+
+                    # Obtener el Hubfile correspondiente a este archivo
+                    try:
+                        hubfile = HubfileService().get_or_404(file.id)
+                        if not hubfile:
+                            print(f"No se encontró el Hubfile para el archivo {file.name}")
+                            continue
+                    except Exception as e:
+                        print(f"Error al obtener Hubfile para {file.name}: {str(e)}")
+                        continue
+
+                    # Convertir cada archivo a los formatos deseados
+                    for format in ["glencoe", "dimacs", "splot", "json", "afm", "uvl"]:
+                        content = ""
+                        name = f"{hubfile.name}_{format}.txt"
+
+                        # Realizar la conversión según el formato
+                        if format == "glencoe":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            GlencoeWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_glencoe.txt"
+                        elif format == "dimacs":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            sat = FmToPysat(fm).transform()
+                            DimacsWriter(temp_file.name, sat).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_cnf.txt"
+                        elif format == "splot":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            SPLOTWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_splot.txt"
+                        elif format == "json":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            JSONWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_json.txt"
+                        elif format == "afm":
+                            temp_file = tempfile.NamedTemporaryFile(suffix='.afm', delete=False)
+                            fm = UVLReader(hubfile.get_path()).transform()
+                            AFMWriter(temp_file.name, fm).transform()
+                            with open(temp_file.name, "r") as new_format_file:
+                                content = new_format_file.read()
+                            name = f"{hubfile.name}_afm.txt"
+                        elif format == "uvl":
+                            # Para UVL no hacemos transformación adicional, solo agregamos el archivo original
+                            content = open(full_path, "r").read()
+                            name = f"{file.name}_uvl.txt"
+
+                        # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
+                        zipf.writestr(os.path.join(dataset_folder, name), content)
+                        files_added = True  # Se agregaron archivos al ZIP
+
             else:
                 print(f"Archivo no encontrado para el dataset {dataset.id}")
 
-    # Verificar si no se han añadido archivos al ZIP
+    # Si no se agregaron archivos al ZIP, devolvemos un mensaje de error, pero no un JSON.
     if not files_added:
-        # Si no se han añadido archivos, devolver un error en formato JSON
-        return jsonify({"error": "No se encontraron archivos disponibles para descargar"}), 404
+        # El archivo ZIP no se crea si no se agregan archivos, solo respondemos con un mensaje.
+        return make_response(
+            jsonify({"error": "No se encontraron archivos disponibles para descargar"}), 404
+        )
 
-    # Si se añadieron archivos, devolver el archivo ZIP generado
+    # Responder con el archivo ZIP
     resp = make_response(
         send_from_directory(
-            ".",
-            zip_path,
+            temp_dir,
+            "all_datasets.zip",
             as_attachment=True,
             mimetype="application/zip"
         )
@@ -503,9 +508,7 @@ def download_all_dataset():
             download_cookie=user_cookie,
         )
 
-    # Retornar la respuesta con el archivo ZIP
     return resp
-
 
 
 @dataset_bp.route("/doi/<path:doi>/", methods=["GET"])
