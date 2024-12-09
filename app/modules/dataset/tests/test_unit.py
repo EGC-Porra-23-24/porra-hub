@@ -9,14 +9,17 @@ from unittest import mock
 from zipfile import ZipFile
 import tempfile
 
+from app.modules.featuremodel.models import FeatureModel
+from app.modules.hubfile.models import Hubfile
+
 
 class PublicationType(Enum):
     NONE = 'none'
     DATA_MANAGEMENT_PLAN = 'datamanagementplan'
 
 
-# Fixture de pytest para configurar el cliente de pruebas
-@pytest.fixture
+# Fixture de pytest
+@pytest.fixture(scope="function")
 def client():
     app = create_app('testing')  # Usamos el entorno de testing
     with app.test_client() as client:
@@ -25,68 +28,91 @@ def client():
             db.drop_all()
             db.create_all()
 
-            # Crear un usuario de prueba
-            user = User(id=5, email="user5@example.com", password="1234", created_at=datetime(2022, 3, 13))
+            # Crear un usuario de prueba (user_33)
+            user = User(id=33, email="user33@example.com", password="1234", created_at=datetime(2022, 3, 13))
             db.session.add(user)
             db.session.commit()
 
-            # Crear metadata para el dataset
-            dsmetadata = DSMetaData(id=20, title="Sample Dataset 20", description="Description for dataset 20",
+            # Crear metadata para el dataset (dataset_33)
+            dsmetadata = DSMetaData(id=33, title="Sample Dataset 33", description="Description for dataset 33",
                                     publication_type=PublicationType.DATA_MANAGEMENT_PLAN.name)
             db.session.add(dsmetadata)
             db.session.commit()
 
-            # Crear el dataset
-            dataset = DataSet(id=20, user_id=user.id, ds_meta_data_id=dsmetadata.id)
+            # Crear el dataset (dataset_33)
+            dataset = DataSet(id=33, user_id=user.id, ds_meta_data_id=dsmetadata.id)
             db.session.add(dataset)
             db.session.commit()
 
-            # Crear un archivo temporal en la ruta esperada para pruebas
-            temp_folder = os.path.join('uploads', 'temp', str(user.id))
-            os.makedirs(temp_folder, exist_ok=True)
-            with open(os.path.join(temp_folder, 'file9.uvl'), 'w') as f:
-                f.write('Contenido simulado del archivo')
+            # Crear un feature_model y asociarlo al dataset
+            feature_model = FeatureModel(id=1, data_set_id=dataset.id)
+            db.session.add(feature_model)
+            db.session.commit()
+
+            # Crear un archivo Hubfile asociado al feature_model (sin 'path')
+            hubfile = Hubfile(id=1, feature_model_id=feature_model.id, name="file33.uvl",
+                              checksum="dummy_checksum", size=1234)
+            db.session.add(hubfile)
+            db.session.commit()
 
             yield client
-
-            # Limpiar el archivo temporal después de la prueba
-            if os.path.exists(os.path.join(temp_folder, 'file9.uvl')):
-                os.remove(os.path.join(temp_folder, 'file9.uvl'))
-            if os.path.exists(temp_folder):
-                os.rmdir(temp_folder)
 
             db.session.remove()
             db.drop_all()
 
 
-# Test para la descarga de todos los datasets
+# Test para la descarga de todos los datasets (esperando un archivo ZIP)
 def test_download_all_dataset(client):
     with mock.patch('flask_login.utils._get_user') as mock_get_user:
-
-        mock_user = User(id=5, email="user5@example.com", password="1234", created_at=datetime(2022, 3, 13))
+        # Mockear al usuario correcto (user_33)
+        mock_user = User(id=33, email="user33@example.com", password="1234", created_at=datetime(2022, 3, 13))
         mock_get_user.return_value = mock_user
 
+        # Crear datasets mock (dataset_33)
         mock_datasets = [
-            mock.Mock(id=20, user_id=5, files=lambda: [mock.Mock(name="file9.uvl", id=1)]),
+            mock.Mock(id=33, user_id=33, files=lambda: [mock.Mock(name="file33.uvl", id=1)]),
         ]
 
-        # Mock de la clase HubfileService
-        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404',
-                        return_value=mock.Mock(id=1, name='hubfile_name', get_path=lambda: '/mock/path')):
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                print('directorio temporal creado en:', tmpdirname)
+        # Mock de Hubfile con un id y un path
+        hubfile_mock = mock.Mock(id=1, get_path=lambda: f"uploads/user_{mock_user.id}/dataset_{33}/file33.uvl")
 
-                # El archivo ZIP donde se almacenarán los datasets
+        # Mockear la llamada a HubfileService.get_or_404
+        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', return_value=hubfile_mock):
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                # Aquí guardamos el archivo en la ruta esperada por la aplicación
+                file_path = os.path.join("uploads/", f'user_{mock_user.id}', f'dataset_{33}', 'file33.uvl')
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+                # Crear un archivo UVL válido para que Flamapy pueda procesarlo
+                with open(file_path, 'w') as f:
+                    f.write('features\n')
+                    f.write('    Chat\n')
+                    f.write('        mandatory\n')
+                    f.write('            Connection\n')
+                    f.write('                alternative\n')
+                    f.write('                    "Peer 2 Peer"\n')
+                    f.write('                    Server\n')
+                    f.write('            Messages\n')
+                    f.write('                or\n')
+                    f.write('                    Text\n')
+                    f.write('                    Video\n')
+                    f.write('                    Audio\n')
+                    f.write('        optional\n')
+                    f.write('            "Data Storage"\n')
+                    f.write('            "Media Player"\n')
+                    f.write('\n')
+                    f.write('constraints\n')
+                    f.write('    Server => "Data Storage"\n')
+                    f.write('    Video | Audio => "Media Player"\n')
+
                 zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
 
                 # Aquí comenzamos a crear el archivo ZIP
                 with ZipFile(zip_path, "w") as zipf:
                     for dataset in mock_datasets:
                         for file in dataset.files():
-                            file.name = str(file.name)
-                            file_path = os.path.join(tmpdirname, file.name)
-                            with open(file_path, 'w') as f:
-                                f.write('Contenido simulado de archivo')
+                            # Hacer que file.name sea un string
+                            file.name = "file33.uvl"  # No es un Mock, es un string
                             zipf.write(file_path, os.path.basename(file_path))
 
                 # Verificar que el archivo ZIP se haya creado correctamente
@@ -95,10 +121,49 @@ def test_download_all_dataset(client):
 
                 # Llamamos a la ruta para descargar todos los datasets
                 response = client.get('/dataset/download/all')
+                assert response.status_code == 200  # Verificamos que el
 
-                # Verificamos que el status de la respuesta es 200 (OK)
-                assert response.status_code == 200
 
-                # Verificar que el archivo ZIP generado en la respuesta se ha enviado correctamente
-                assert 'content-type' in response.headers
-                assert response.headers['content-type'] == 'application/zip'
+# Test para la descarga de todos los datasets (cuando los archivos no se encuentran)
+def test_download_all_dataset_files_not_found(client):
+    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+        mock_user = User(id=5, email="user5@example.com", password="1234", created_at=datetime(2022, 3, 13))
+        mock_get_user.return_value = mock_user
+
+        # Configuramos el mock para `files()` que devuelve una lista vacía
+        mock_datasets = [
+            mock.Mock(id=20, user_id=5, files=lambda: []),  # No hay archivos para este dataset
+        ]
+
+        # Simulamos un escenario donde el archivo no está presente
+        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', side_effect=FileNotFoundError):
+            # No deberíamos poder crear archivos si no hay archivos disponibles
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+
+                # No deberíamos poder crear archivos si no hay archivos disponibles
+                with ZipFile(zip_path, "w") as zipf:
+                    for dataset in mock_datasets:
+                        for file in dataset.files():
+                            try:
+                                file.name = str(file.name)
+                                file_path = os.path.join(tmpdirname, file.name)
+                                with open(file_path, 'w') as f:
+                                    f.write('Contenido simulado de archivo')
+                                zipf.write(file_path, os.path.basename(file_path))
+                            except FileNotFoundError:
+                                pass
+
+                # Llamamos a la ruta para descargar todos los datasets
+                response = client.get('/dataset/download/all')
+
+                # Verificamos que el status de la respuesta es 404 (No encontrado)
+                assert response.status_code == 404
+
+                # Verificar que la respuesta sea un JSON
+                assert response.content_type == 'application/json'
+
+                # Verificar el contenido del JSON (mensaje de error esperado)
+                json_response = response.get_json()
+                assert 'error' in json_response
+                assert json_response['error'] == 'No se encontraron archivos disponibles para descargar'

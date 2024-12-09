@@ -384,27 +384,31 @@ def download_all_dataset():
     if not user_cookie:
         user_cookie = str(uuid.uuid4())
 
-    # Crear un directorio temporal para almacenar el archivo ZIP
     temp_dir = tempfile.mkdtemp()
     zip_path = os.path.join(temp_dir, "all_datasets.zip")
 
+    files_added = False
+
     with ZipFile(zip_path, "w") as zipf:
-        # Obtener todos los datasets existentes (sin filtrar por usuario)
         datasets = dataset_service.get_all()
-        # Iterar sobre todos los datasets
+
         for dataset in datasets:
             file_path = f"uploads/user_{dataset.user_id}/dataset_{dataset.id}/"
+
             # Verificar que el directorio del dataset existe
             if os.path.exists(file_path):
                 # Crear una carpeta para el dataset dentro del ZIP (usando el ID o nombre del dataset)
                 dataset_folder = f"dataset_{dataset.id}/"
+
                 # Iterar sobre todos los archivos del dataset usando dataset.files()
                 for file in dataset.files():
                     full_path = os.path.join(file_path, file.name)
+
                     # Verificar que el archivo existe
                     if not os.path.exists(full_path):
                         print(f"Archivo no encontrado: {full_path}")
-                        continue
+                        continue  # Si el archivo no existe, continuar con el siguiente archivo
+
                     # Obtener el Hubfile correspondiente a este archivo
                     try:
                         hubfile = HubfileService().get_or_404(file.id)
@@ -464,8 +468,17 @@ def download_all_dataset():
 
                         # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
                         zipf.writestr(os.path.join(dataset_folder, name), content)
+                        files_added = True  # Se agregaron archivos al ZIP
+
             else:
                 print(f"Archivo no encontrado para el dataset {dataset.id}")
+
+    # Si no se agregaron archivos al ZIP, devolvemos un mensaje de error, pero no un JSON.
+    if not files_added:
+        # El archivo ZIP no se crea si no se agregan archivos, solo respondemos con un mensaje.
+        return make_response(
+            jsonify({"error": "No se encontraron archivos disponibles para descargar"}), 404
+        )
 
     # Responder con el archivo ZIP
     resp = make_response(
