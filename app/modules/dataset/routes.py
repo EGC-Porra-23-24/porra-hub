@@ -470,12 +470,6 @@ def create_from_github():
     return render_template("dataset/upload_github.html", form=form)
 
 
-@dataset_bp.route("/dataset/file/upload/github", methods=["POST", "GET"])
-@login_required
-def upload_from_github():
-    pass
-
-
 @dataset_bp.route("/dataset/file/delete", methods=["POST"])
 def delete():
     data = request.get_json()
