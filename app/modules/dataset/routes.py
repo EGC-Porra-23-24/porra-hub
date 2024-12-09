@@ -308,10 +308,23 @@ def upload_from_zip():
         with ZipFile(file_path, 'r') as zip_ref:
             for zip_info in zip_ref.infolist():
                 if zip_info.filename.endswith(".uvl"):
-                    # Extraer archivo en la carpeta temporal del usuario
-                    extracted_path = os.path.join(temp_folder, zip_info.filename)
-                    zip_ref.extract(zip_info, temp_folder)
-                    extracted_files.append(zip_info.filename)
+                    extracted_filename = os.path.basename(zip_info.filename)
+                    extracted_path = os.path.join(temp_folder, extracted_filename)
+
+                    # Si el archivo ya existe, generar un nombre único
+                    base_name, extension = os.path.splitext(extracted_filename)
+                    i = 1
+                    while os.path.exists(extracted_path):
+                        extracted_path = os.path.join(temp_folder, f"{base_name} ({i}){extension}")
+                        i += 1
+
+                    # Extraer el archivo y guardarlo en temp_folder
+                    with zip_ref.open(zip_info) as source, open(extracted_path, 'wb') as target:
+                        target.write(source.read())
+
+                    # Agregar el nombre del archivo extraído a la lista de archivos
+                    extracted_files.append(extracted_filename)
+
     except zipfile.BadZipFile:
         return jsonify({"message": "Invalid zip file"}), 400
     except Exception as e:
@@ -325,7 +338,6 @@ def upload_from_zip():
             {
                 "message": "Zip uploaded and .uvl files extracted successfully",
                 "extracted_files": extracted_files,
-                "extracted_path": extracted_path,
             }
         ),
         200,
