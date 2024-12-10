@@ -114,14 +114,25 @@ def test_download_all_dataset(client):
                             # Hacer que file.name sea un string
                             file.name = "file33.uvl"  # No es un Mock, es un string
                             zipf.write(file_path, os.path.basename(file_path))
+                try:
+                    # Verificación de la existencia del archivo
+                    print(f"ZIP file exists at: {zip_path}")
+                    assert os.path.exists(zip_path)
+                    assert os.path.getsize(zip_path) > 0
 
-                # Verificar que el archivo ZIP se haya creado correctamente
-                assert os.path.exists(zip_path)  # Comprobamos que el archivo ZIP exista
-                assert os.path.getsize(zip_path) > 0  # Comprobamos que el archivo ZIP no esté vacío
+                    # Aquí va tu lógica de comprobación del contenido del ZIP
+                    with ZipFile(zip_path, 'r') as zipf:
+                        # Verifica el contenido
+                        zipf.testzip()  # Esto puede levantar una excepción si el ZIP está dañado
 
-                # Llamamos a la ruta para descargar todos los datasets
-                response = client.get('/dataset/download/all')
-                assert response.status_code == 200  # Verificamos que el
+                    response = client.get('/dataset/download/all')
+                    assert response.status_code == 200
+                    
+                finally:
+                    # Eliminar el archivo ZIP al final del test
+                    if os.path.exists(zip_path):
+                        os.remove(zip_path)
+                        print(f"Deleted ZIP file at: {zip_path}")
 
 
 # Test para la descarga de todos los datasets (cuando los archivos no se encuentran)
@@ -153,7 +164,7 @@ def test_download_all_dataset_files_not_found(client):
                                 zipf.write(file_path, os.path.basename(file_path))
                             except FileNotFoundError:
                                 pass
-
+            try:
                 # Llamamos a la ruta para descargar todos los datasets
                 response = client.get('/dataset/download/all')
 
@@ -167,3 +178,6 @@ def test_download_all_dataset_files_not_found(client):
                 json_response = response.get_json()
                 assert 'error' in json_response
                 assert json_response['error'] == 'No se encontraron archivos disponibles para descargar'
+            finally:
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
