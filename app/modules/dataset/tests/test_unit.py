@@ -143,7 +143,55 @@ def test_download_all_dataset_files_not_found(client):
 
         # Configuramos el mock para `files()` que devuelve una lista vacía
         mock_datasets = [
-            mock.Mock(id=20, user_id=5, files=lambda: []),  # No hay archivos para este dataset
+            mock.Mock(id=20, user_id=5, files=lambda: [mock.Mock(name="fileX.uvl", id=1)]),
+        ]
+
+        # Simulamos un escenario donde el archivo no está presente
+        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', side_effect=FileNotFoundError):
+            # No deberíamos poder crear archivos si no hay archivos disponibles
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+
+                # No deberíamos poder crear archivos si no hay archivos disponibles
+                with ZipFile(zip_path, "w") as zipf:
+                    for dataset in mock_datasets:
+                        for file in dataset.files():
+                            try:
+                                file.name = str(file.name)
+                                file_path = os.path.join(tmpdirname, file.name)
+                                with open(file_path, 'w') as f:
+                                    f.write('Contenido simulado de archivo')
+                                zipf.write(file_path, os.path.basename(file_path))
+                            except FileNotFoundError:
+                                pass
+            try:
+                # Llamamos a la ruta para descargar todos los datasets
+                response = client.get('/dataset/download/all')
+
+                # Verificamos que el status de la respuesta es 404 (No encontrado)
+                assert response.status_code == 404
+
+                # Verificar que la respuesta sea un JSON
+                assert response.content_type == 'application/json'
+
+                # Verificar el contenido del JSON (mensaje de error esperado)
+                json_response = response.get_json()
+                assert 'error' in json_response
+                assert json_response['error'] == 'No se encontraron archivos disponibles para descargar'
+            finally:
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
+
+
+# Test para la descarga de todos los datasets (cuando los archivos no se encuentran)
+def test_download_all_dataset_empty(client):
+    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+        mock_user = User(id=5, email="user5@example.com", password="1234", created_at=datetime(2022, 3, 13))
+        mock_get_user.return_value = mock_user
+
+        # Configuramos el mock para `files()` que devuelve una lista vacía
+        mock_datasets = [
+            mock.Mock(id=20, user_id=5, files=lambda: []),
         ]
 
         # Simulamos un escenario donde el archivo no está presente
