@@ -1,6 +1,5 @@
 from io import BytesIO
-import random
-import string
+import secrets
 from zipfile import ZipFile
 from locust import HttpUser, TaskSet, task
 from core.locust.common import get_csrf_token
@@ -28,7 +27,7 @@ class DatasetZipBehavior(TaskSet):
 
         zip_buffer.seek(0)
 
-        zip_filename = f"{''.join(random.choices(string.ascii_lowercase + string.digits, k=10))}.zip"
+        zip_filename = f"{secrets.token_hex(5)}.zip"
 
         data = {
             'file': (zip_buffer, zip_filename)
