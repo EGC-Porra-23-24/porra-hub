@@ -350,3 +350,66 @@ def test_edit_community_post_nonexistent(client, app, setup_data):
         assert response.status_code == 404
         response_data = response.data.decode('utf-8')
         assert 'Community not found' in response_data
+
+
+def test_delete_community_as_owner(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.delete_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        assert 'My Communities' in response_data
+
+        deleted_community = Community.query.filter_by(id=community.id).first()
+        assert deleted_community is None
+
+
+def test_delete_community_as_member(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.delete_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 403
+        response_data = response.data.decode('utf-8')
+        assert 'Forbidden' in response_data
+
+
+def test_delete_community_nonexistent(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        response = client.post(
+            url_for('community.delete_community', community_id=9999),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 404
+        response_data = response.data.decode('utf-8')
+        assert 'Community not found' in response_data
+
+
+def test_delete_community_unauthenticated(client, app, setup_data):
+    community = Community.query.filter_by(name="Scientific Community").first()
+    url = '/community/' + str(community.id) + '/delete'
+
+    response = client.post(url, follow_redirects=True)
+
+    assert response.status_code == 200
+    response_data = response.data.decode('utf-8')
+    assert 'Login' in response_data
