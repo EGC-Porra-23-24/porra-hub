@@ -1,6 +1,8 @@
 from locust import HttpUser, TaskSet, task
 from core.locust.common import get_csrf_token, fake
 from core.environment.host import get_host_for_locust_testing
+from app.modules.auth.services import AuthenticationService
+from app import app_context
 
 
 class SignupBehavior(TaskSet):
@@ -12,13 +14,40 @@ class SignupBehavior(TaskSet):
         response = self.client.get("/signup")
         csrf_token = get_csrf_token(response)
 
+        name = fake.name()
+        surname = fake.name()
+
+        email = fake.email()
+        password = fake.password()
         response = self.client.post("/signup", data={
-            "email": fake.email(),
-            "password": fake.password(),
+            "email": email,
+            "password": password,
+            "name": name,
+            "surname": surname,
             "csrf_token": csrf_token
         })
+
         if response.status_code != 200:
             print(f"Signup failed: {response.status_code}")
+
+        self.verify_email(email, password, name, surname)
+
+    def verify_email(self, email, password, name, surname):
+        user_data = {
+            "email": email,
+            "password": password,
+            "name": name,
+            "surname": surname,
+        }
+        token = 0
+
+        with app_context():
+            token = AuthenticationService().generate_verification_token(user_data)
+
+        response = self.client.post(f"/verify/{token}", data={})
+
+        if response.status_code != 200:
+            print(f"Verification failed: {response.status_code}")
 
 
 class LoginBehavior(TaskSet):
