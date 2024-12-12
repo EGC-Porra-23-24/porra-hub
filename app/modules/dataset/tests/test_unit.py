@@ -59,3 +59,48 @@ def test_list_communities_not_authenticated(client):
     """ Test access without authentication """
     response = client.get('/communities')
     assert response.status_code == 302  # Redirect to login
+
+
+def test_search_communities_valid_query(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        response = client.get(
+            url_for('community.search_communities', query='Scientific'),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert 'Search Results' in response.data.decode('utf-8')
+        assert 'Scientific Community' in response.data.decode('utf-8')
+
+
+def test_search_communities_empty_query(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        response = client.get(
+            url_for('community.search_communities', query=''),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert 'Search Results' in response.data.decode('utf-8')
+        assert 'No communities found' in response.data.decode('utf-8')
+
+
+def test_search_communities_no_results(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        response = client.get(
+            url_for('community.search_communities', query='Nonexistent'),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert 'Search Results' in response.data.decode('utf-8')
+        assert 'No communities found' in response.data.decode('utf-8')
