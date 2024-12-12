@@ -4,6 +4,7 @@ from app import create_app, db
 from app.modules.auth.models import User, Community
 from flask_login import login_user, logout_user
 
+from app.modules.dataset.services import CommunityService
 from app.modules.profile.models import UserProfile
 
 
@@ -467,3 +468,67 @@ def test_request_community_as_requester(client, app, setup_data):
         assert response.status_code == 200
         response_data = response.data.decode('utf-8')
         assert 'Community: Scientific Community' in response_data
+
+
+def test_leave_community_as_member(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.leave_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert not CommunityService.is_member(community, user)
+
+
+def test_leave_community_as_owner(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.leave_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 403
+        assert CommunityService.is_member(community, user)
+        assert CommunityService.is_owner(community, user)
+
+
+def test_leave_community_nonexistent(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        response = client.post(
+            url_for('community.leave_community', community_id=9999),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 404
+        assert 'Community not found' in response.data.decode('utf-8')
+
+
+def test_leave_community_not_a_member(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="requester1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.leave_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 403
+        assert 'Forbidden' in response.data.decode('utf-8')
+        assert not CommunityService.is_member(community, user)
