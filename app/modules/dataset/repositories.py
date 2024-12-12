@@ -217,6 +217,12 @@ class CommunityRepository:
         return False
 
     @staticmethod
+    def remove_member(community, user):
+        if user in community.members:
+            community.members.remove(user)
+            db.session.commit()
+
+    @staticmethod
     def remove_request(community_id, user_id):
         community = Community.query.get(community_id)
         if community:

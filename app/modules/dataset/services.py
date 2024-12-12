@@ -329,6 +329,21 @@ class CommunityService:
         CommunityRepository.request_community(community_id, current_user)
 
     @staticmethod
+    def remove_member(community_id, user):
+        community = CommunityService.get_community_by_id(community_id)
+
+        if not community:
+            raise Exception("Community not found")
+
+        if not CommunityService.is_member(community, user):
+            raise Exception("User is not a member of this community.")
+
+        if CommunityService.is_owner(community, user):
+            raise Exception("Owners cannot leave the community.")
+
+        CommunityRepository.remove_member(community, user)
+
+    @staticmethod
     def handle_request(community_id, user_id, action):
         if action == "accept":
             added = CommunityRepository.add_member(community_id, user_id)
