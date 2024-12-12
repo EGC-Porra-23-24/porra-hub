@@ -204,3 +204,36 @@ def test_create_community_page_unauthenticated_access(client, app, setup_data):
     response = client.get('/community/create')
 
     assert response.status_code == 302
+
+
+def test_create_community_success(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        response = client.post(
+            url_for('community.create_community'),
+            data={'name': 'New Community test'},
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        assert "New Community test" in response_data
+
+
+def test_create_community_missing_name(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        response = client.post(
+            url_for('community.create_community'),
+            data={'name': ''},
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        print(response_data)
+        assert 'Create a New Community' in response_data
