@@ -4,6 +4,8 @@ from app import create_app, db
 from app.modules.auth.models import User, Community
 from flask_login import login_user
 
+from app.modules.profile.models import UserProfile
+
 
 @pytest.fixture
 def app():
@@ -23,20 +25,50 @@ def client(app):
 @pytest.fixture
 def setup_data(app):
     """ Create initial data for tests """
-    user1 = User(email="owner1@example.com", password="password123")
-    user2 = User(email="member1@example.com", password="password123")
-    user3 = User(email="requester1@example.com", password="password123")
 
-    community1 = Community(name="Scientific Community")
-    community2 = Community(name="Data Community")
+    # Crear usuarios
+    user1 = User(id=111, email="owner1@example.com", password="password123")
+    user2 = User(id=222, email="member1@example.com", password="password123")
+    user3 = User(id=333, email="requester1@example.com", password="password123")
 
+    # Crear perfiles
+    profile1 = UserProfile(
+        user_id=user1.id,
+        name="Owner 1",
+        surname="Surname 1",
+        orcid="0000-0000-0000-0001",
+        affiliation="University of Example"
+    )
+    profile2 = UserProfile(
+        user_id=user2.id,
+        name="Member 1",
+        surname="Surname 2",
+        orcid="0000-0000-0000-0002",
+        affiliation="Institute of Example"
+    )
+    profile3 = UserProfile(
+        user_id=user3.id,
+        name="Requester 1",
+        surname="Surname 3",
+        orcid="0000-0000-0000-0003",
+        affiliation="Research Center Example"
+    )
+
+    # Crear comunidades
+    community1 = Community(id=111, name="Scientific Community")
+    community2 = Community(id=222, name="Data Community")
+
+    # Asociar usuarios a las comunidades
     community1.owners.append(user1)
     community1.members.append(user1)
     community1.members.append(user2)
     community1.requests.append(user3)
 
-    db.session.add_all([user1, user2, user3, community1, community2])
+    # Añadir todos los datos a la base de datos
+    db.session.add_all([user1, user2, user3, community1, community2, profile1, profile2, profile3])
     db.session.commit()
+
+    return user1, user2, user3, community1, community2
 
 
 def test_list_communities_authenticated(client, app, setup_data):
@@ -104,3 +136,51 @@ def test_search_communities_no_results(client, app, setup_data):
         assert response.status_code == 200
         assert 'Search Results' in response.data.decode('utf-8')
         assert 'No communities found' in response.data.decode('utf-8')
+
+
+def test_view_community_existing(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.get(
+            url_for('community.view_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert 'Scientific Community' in response.data.decode('utf-8')
+        assert user.profile.name in response.data.decode('utf-8')
+
+
+def test_view_community_nonexistent(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        response = client.get(
+            url_for('community.view_community', community_id=9999),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 404
+        assert 'Community not found' in response.data.decode('utf-8')
+
+
+def test_view_community_as_owner(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.get(
+            url_for('community.view_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        assert 'Scientific Community' in response.data.decode('utf-8')
+        assert 'Requests' in response.data.decode('utf-8')
