@@ -413,3 +413,57 @@ def test_delete_community_unauthenticated(client, app, setup_data):
     assert response.status_code == 200
     response_data = response.data.decode('utf-8')
     assert 'Login' in response_data
+
+
+def test_request_community_as_non_member(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="requester1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Data Community").first()
+
+        response = client.post(
+            url_for('community.request_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        print(response_data)
+        assert 'Community: Data Community' in response_data
+        assert user in community.requests
+
+
+def test_request_community_as_member(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.request_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        print(response_data)
+        assert 'Community: Scientific Community' in response_data
+
+
+def test_request_community_as_requester(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="requester1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.request_community', community_id=community.id),
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        assert 'Community: Scientific Community' in response_data
