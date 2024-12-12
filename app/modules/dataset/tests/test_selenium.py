@@ -1,6 +1,7 @@
 import os
 import time
 
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -131,5 +132,78 @@ def test_upload_dataset():
         close_driver(driver)
 
 
+def test_community():
+    driver = initialize_driver()
+
+    try:
+        host = get_host_for_selenium_testing()
+
+        driver.get(host + "/login")
+        wait_for_page_to_load(driver)
+        driver.find_element(By.LINK_TEXT, "Login").click()
+        driver.find_element(By.ID, "email").click()
+        driver.find_element(By.ID, "email").send_keys("user1@example.com")
+        driver.find_element(By.ID, "password").click()
+        driver.find_element(By.ID, "password").send_keys("1234")
+        driver.find_element(By.ID, "password").send_keys(Keys.ENTER)
+        wait_for_page_to_load(driver)
+        driver.find_element(By.CSS_SELECTOR, ".sidebar-item:nth-child(8) .align-middle:nth-child(2)").click()
+        driver.find_element(By.LINK_TEXT, "Create Community").click()
+        wait_for_page_to_load(driver)
+        driver.find_element(By.ID, "name").click()
+        driver.find_element(By.ID, "name").send_keys("Prueba")
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
+        wait_for_page_to_load(driver)
+        driver.find_element(By.LINK_TEXT, "Prueba").click()
+        driver.find_element(By.LINK_TEXT, "Edit Community").click()
+        wait_for_page_to_load(driver)
+        driver.find_element(By.ID, "name").click()
+        driver.find_element(By.ID, "name").send_keys("Prueba de Selenium")
+        wait_for_page_to_load(driver)
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
+        driver.find_element(By.CSS_SELECTOR, ".btn-danger").click()
+        driver.switch_to.alert.accept()
+        driver.find_element(By.LINK_TEXT, "Log out").click()
+
+    finally:
+
+        # Close the browser
+        close_driver(driver)
+
+
 # Call the test function
 test_upload_dataset()
+test_community()
+
+
+class Testcommunity():
+    def setup_method(self, method):
+        self.driver = webdriver.Chrome()
+        self.vars = {}
+
+    def teardown_method(self, method):
+        self.driver.quit()
+
+    def test_testcommunity(self):
+        host = get_host_for_selenium_testing()
+
+        self.driver.get(host + "/login")
+        self.driver.find_element(By.LINK_TEXT, "Login").click()
+        self.driver.find_element(By.ID, "email").click()
+        self.driver.find_element(By.ID, "email").send_keys("user1@example.com")
+        self.driver.find_element(By.ID, "password").click()
+        self.driver.find_element(By.ID, "password").send_keys("1234")
+        self.driver.find_element(By.ID, "password").send_keys(Keys.ENTER)
+        self.driver.find_element(By.CSS_SELECTOR, ".sidebar-item:nth-child(8) .align-middle:nth-child(2)").click()
+        self.driver.find_element(By.LINK_TEXT, "Create Community").click()
+        self.driver.find_element(By.ID, "name").click()
+        self.driver.find_element(By.ID, "name").send_keys("Prueba")
+        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
+        self.driver.find_element(By.LINK_TEXT, "Prueba").click()
+        self.driver.find_element(By.LINK_TEXT, "Edit Community").click()
+        self.driver.find_element(By.ID, "name").click()
+        self.driver.find_element(By.ID, "name").send_keys("Prueba de Selenium")
+        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
+        self.driver.find_element(By.CSS_SELECTOR, ".btn-danger").click()
+        self.driver.switch_to.alert.accept()
+        self.driver.find_element(By.LINK_TEXT, "Log out").click()
