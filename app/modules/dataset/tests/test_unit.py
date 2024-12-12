@@ -39,7 +39,6 @@ def setup_data(app):
     db.session.commit()
 
 
-# Test: Access the list of communities
 def test_list_communities_authenticated(client, app, setup_data):
     """ Test access to the communities view with an authenticated user """
     with app.test_request_context():
@@ -56,9 +55,7 @@ def test_list_communities_authenticated(client, app, setup_data):
         assert "Data Community" in response_data
 
 
-# Test: Access without authentication
 def test_list_communities_not_authenticated(client):
     """ Test access without authentication """
     response = client.get('/communities')
     assert response.status_code == 302  # Redirect to login
-
