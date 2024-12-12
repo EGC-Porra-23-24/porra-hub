@@ -237,3 +237,116 @@ def test_create_community_missing_name(client, app, setup_data):
         response_data = response.data.decode('utf-8')
         print(response_data)
         assert 'Create a New Community' in response_data
+
+
+def test_edit_community_page_as_owner(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.get(
+            url_for('community.edit_community_page', community_id=community.id)
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        assert 'Edit Community' in response_data
+        assert community.name in response_data
+
+
+def test_edit_community_page_as_member(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.get(
+            url_for('community.edit_community_page', community_id=community.id)
+        )
+
+        assert response.status_code == 403
+        response_data = response.data.decode('utf-8')
+        assert 'Forbidden' in response_data
+
+
+def test_edit_community_page_nonexistent(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        response = client.get(url_for('community.edit_community_page', community_id=9999))
+
+        assert response.status_code == 404
+        response_data = response.data.decode('utf-8')
+        assert 'Community not found' in response_data
+
+
+def test_edit_community_page_unauthenticated(client, app, setup_data):
+    community = Community.query.filter_by(name="Scientific Community").first()
+    url = '/community/' + str(community.id) + '/edit'
+
+    response = client.get(url, follow_redirects=True)
+
+    assert response.status_code == 200
+    response_data = response.data.decode('utf-8')
+    assert 'Login' in response_data
+
+
+def test_edit_community_post_as_owner(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        new_name = "Updated Community Name"
+
+        response = client.post(
+            url_for('community.edit_community', community_id=community.id),
+            data={'name': new_name},
+            follow_redirects=True
+        )
+
+        assert response.status_code == 200
+        response_data = response.data.decode('utf-8')
+        assert 'Updated Community Name' in response_data
+
+        updated_community = Community.query.filter_by(id=community.id).first()
+        assert updated_community.name == new_name
+
+
+def test_edit_community_post_as_member(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="member1@example.com").first()
+        login_user(user)
+
+        community = Community.query.filter_by(name="Scientific Community").first()
+
+        response = client.post(
+            url_for('community.edit_community', community_id=community.id),
+            data={'name': 'New Name'},
+            follow_redirects=True
+        )
+
+        assert response.status_code == 403
+        response_data = response.data.decode('utf-8')
+        assert 'Forbidden' in response_data
+
+
+def test_edit_community_post_nonexistent(client, app, setup_data):
+    with app.test_request_context():
+        user = User.query.filter_by(email="owner1@example.com").first()
+        login_user(user)
+
+        response = client.post(
+            url_for('community.edit_community', community_id=9999),
+            data={'name': 'New Name'},
+            follow_redirects=True
+        )
+
+        assert response.status_code == 404
+        response_data = response.data.decode('utf-8')
+        assert 'Community not found' in response_data
