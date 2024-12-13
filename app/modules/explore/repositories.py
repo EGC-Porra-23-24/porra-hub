@@ -23,7 +23,7 @@ class ExploreRepository(BaseRepository):
             query = query.filter(DataSet.created_at >= min_creation_date)
         if max_creation_date:
             max_creation_date = (dt.strptime(max_creation_date, format).date() + timedelta(days=1)).strftime(format)
-            query = query.filter(DataSet.created_at <= max_creation_date)
+            query = query.filter(DataSet.created_at < max_creation_date)
         # DSMetrics
         if min_features:
             query = query.filter(DSMetrics.number_of_features >= int(min_features))
