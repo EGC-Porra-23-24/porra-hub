@@ -28,12 +28,18 @@ jobs:
     needs: tests
     uses: ./.github/workflows/codacy.yml
 
-  deploy-render:
+  validate-main-branch:
+    name: Validate Main Branch
     needs: tests
+    runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - run: echo "Push to main branch detected."
+
+  deploy-render:
+    needs: validate-main-branch
     uses: ./.github/workflows/render.yml
 
   docker-publish:
-    needs: tests
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate-main-branch
     uses: ./.github/workflows/deployment_on_dockerhub.yml
