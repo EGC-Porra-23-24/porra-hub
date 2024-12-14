@@ -21,6 +21,7 @@ from flask import (
     url_for,
 )
 from flask_login import login_required, current_user
+import requests
 
 from app.modules.dataset.forms import DataSetForm
 from app.modules.dataset.models import (
@@ -173,6 +174,102 @@ def upload():
     )
 
 
+@dataset_bp.route("/dataset/file/upload/github", methods=["POST", "GET"])
+@login_required
+def upload_from_github():
+    github_url = request.json.get('url')
+    if not github_url:
+        return jsonify({"error": "GitHub URL is required"}), 400
+
+    # Cambiar la URL a la versión raw
+    if 'github.com' in github_url:
+        raw_url = github_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+    else:
+        return jsonify({"error": "Invalid GitHub URL"}), 400
+
+    try:
+        # Descargar el archivo desde la URL raw
+        response = requests.get(raw_url, timeout=15)
+        response.raise_for_status()  # Si la respuesta es mala (404, 500), lanza una excepción
+
+        file_name = raw_url.split('/')[-1]
+        file_type = response.headers['Content-Type']
+        file_size = response.headers['Content-Length']
+
+        # Obtener la carpeta temporal específica para el usuario actual
+        temp_folder = current_user.temp_folder()
+
+        # Crear la carpeta si no existe
+        if not os.path.exists(temp_folder):
+            os.makedirs(temp_folder)
+
+        # Ruta completa para el archivo descargado
+        file_path = os.path.join(temp_folder, file_name)
+
+        # Si el archivo ya existe, generar un nuevo nombre único
+        if os.path.exists(file_path):
+            base_name, extension = os.path.splitext(file_name)
+            i = 1
+            while os.path.exists(os.path.join(temp_folder, f"{base_name} ({i}){extension}")):
+                i += 1
+            file_name = f"{base_name} ({i}){extension}"
+            file_path = os.path.join(temp_folder, file_name)
+
+        # Guardar el archivo descargado en la carpeta temporal
+        with open(file_path, 'wb') as temp_file:
+            temp_file.write(response.content)
+
+        # Procesar si es un ZIP
+        if file_name.endswith('.zip'):
+            extracted_files = []
+            with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                for zip_info in zip_ref.infolist():
+                    if zip_info.filename.endswith('.uvl'):  # Excluir directorios
+                        extracted_filename = os.path.basename(zip_info.filename)
+                        extracted_path = os.path.join(temp_folder, extracted_filename)
+
+                        base_name, extension = os.path.splitext(extracted_filename)
+                        i = 1
+                        while os.path.exists(extracted_path):
+                            extracted_path = os.path.join(temp_folder, f"{base_name} ({i}){extension}")
+                            i += 1
+
+                        with zip_ref.open(zip_info) as source, open(extracted_path, 'wb') as target:
+                            target.write(source.read())
+
+                    # Agregar el nombre del archivo extraído a la lista de archivos
+                        extracted_files.append(extracted_filename)
+
+            return jsonify({
+                "message": "ZIP file uploaded and extracted successfully",
+                "fileName": file_name,
+                "fileType": file_type,
+                "extracted_files": extracted_files,
+                "fileSize": file_size
+            })
+
+        # Si el archivo es un uvl o cualquier otro archivo que no sea zip
+        elif file_name.endswith('.uvl'):
+            uvl_file_path = os.path.join(temp_folder, file_name)
+            with open(uvl_file_path, 'wb') as uvl_file:
+                uvl_file.write(response.content)
+
+            return jsonify({
+                "message": "UVL file uploaded and validated successfully",
+                "fileName": file_name,
+                "filePath": uvl_file_path,  # Ruta del archivo UVL
+                "fileSize": file_size
+            })
+
+        else:
+            return jsonify({"error": "Unsupported file type"}), 400
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Error uploading file from GitHub: {str(e)}"}), 500
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "The request to GitHub timed out"}), 408
+
+
 @dataset_bp.route("/dataset/file/upload/zip", methods=["GET", "POST"])
 @login_required
 def upload_from_zip():
@@ -211,10 +308,23 @@ def upload_from_zip():
         with ZipFile(file_path, 'r') as zip_ref:
             for zip_info in zip_ref.infolist():
                 if zip_info.filename.endswith(".uvl"):
-                    # Extraer archivo en la carpeta temporal del usuario
-                    extracted_path = os.path.join(temp_folder, zip_info.filename)
-                    zip_ref.extract(zip_info, temp_folder)
-                    extracted_files.append(zip_info.filename)
+                    extracted_filename = os.path.basename(zip_info.filename)
+                    extracted_path = os.path.join(temp_folder, extracted_filename)
+
+                    # Si el archivo ya existe, generar un nombre único
+                    base_name, extension = os.path.splitext(extracted_filename)
+                    i = 1
+                    while os.path.exists(extracted_path):
+                        extracted_path = os.path.join(temp_folder, f"{base_name} ({i}){extension}")
+                        i += 1
+
+                    # Extraer el archivo y guardarlo en temp_folder
+                    with zip_ref.open(zip_info) as source, open(extracted_path, 'wb') as target:
+                        target.write(source.read())
+
+                    # Agregar el nombre del archivo extraído a la lista de archivos
+                    extracted_files.append(extracted_filename)
+
     except zipfile.BadZipFile:
         return jsonify({"message": "Invalid zip file"}), 400
     except Exception as e:
@@ -228,7 +338,6 @@ def upload_from_zip():
             {
                 "message": "Zip uploaded and .uvl files extracted successfully",
                 "extracted_files": extracted_files,
-                "extracted_path": extracted_path,
             }
         ),
         200,
@@ -296,6 +405,69 @@ def create_from_zip():
         return jsonify({"message": msg}), 200
 
     return render_template("dataset/upload_zip.html", form=form)
+
+
+@dataset_bp.route("/dataset/upload/github", methods=["POST", "GET"])
+@login_required
+def create_from_github():
+    form = DataSetForm()
+    if request.method == "POST":
+
+        dataset = None
+
+        if not form.validate_on_submit():
+            return jsonify({"message": form.errors}), 400
+
+        try:
+            logger.info("Creating dataset...")
+            dataset = dataset_service.create_from_form(form=form, current_user=current_user)
+            logger.info(f"Created dataset: {dataset}")
+            dataset_service.move_feature_models(dataset)
+        except Exception as exc:
+            logger.exception(f"Exception while create dataset data in local {exc}")
+            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+
+        # send dataset as deposition to Zenodo
+        data = {}
+        try:
+            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
+            response_data = json.dumps(zenodo_response_json)
+            data = json.loads(response_data)
+        except Exception as exc:
+            data = {}
+            zenodo_response_json = {}
+            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
+
+        if data.get("conceptrecid"):
+            deposition_id = data.get("id")
+
+            # update dataset with deposition id in Zenodo
+            dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
+
+            try:
+                # iterate for each feature model (one feature model = one request to Zenodo)
+                for feature_model in dataset.feature_models:
+                    zenodo_service.upload_file(dataset, deposition_id, feature_model)
+
+                # publish deposition
+                zenodo_service.publish_deposition(deposition_id)
+
+                # update DOI
+                deposition_doi = zenodo_service.get_doi(deposition_id)
+                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
+            except Exception as e:
+                msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
+                return jsonify({"message": msg}), 200
+
+        # Delete temp folder
+        file_path = current_user.temp_folder()
+        if os.path.exists(file_path) and os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
+        msg = "Everything works!"
+        return jsonify({"message": msg}), 200
+
+    return render_template("dataset/upload_github.html", form=form)
 
 
 @dataset_bp.route("/dataset/file/delete", methods=["POST"])
