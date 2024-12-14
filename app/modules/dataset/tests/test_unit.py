@@ -127,7 +127,7 @@ def test_download_all_dataset(client):
 
                     response = client.get('/dataset/download/all')
                     assert response.status_code == 200
-                    
+
                 finally:
                     # Eliminar el archivo ZIP al final del test
                     if os.path.exists(zip_path):
