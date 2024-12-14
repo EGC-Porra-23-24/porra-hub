@@ -10,6 +10,7 @@ from app.modules.dataset.models import (
     DOIMapping,
     DSDownloadRecord,
     DSMetaData,
+    DSMetrics,
     DSViewRecord,
     DataSet
 )
@@ -41,6 +42,11 @@ class DSMetaDataRepository(BaseRepository):
 
     def filter_by_doi(self, doi: str) -> Optional[DSMetaData]:
         return self.model.query.filter_by(dataset_doi=doi).first()
+
+
+class DSMetricsRepository(BaseRepository):
+    def __init__(self):
+        super().__init__(DSMetrics)
 
 
 class DSViewRecordRepository(BaseRepository):

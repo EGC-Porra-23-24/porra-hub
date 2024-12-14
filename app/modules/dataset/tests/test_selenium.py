@@ -1,7 +1,6 @@
 import os
 import time
 
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -171,39 +170,28 @@ def test_community():
         close_driver(driver)
 
 
-# Call the test function
-test_upload_dataset()
-test_community()
+def test_download_all_dataset():
+    driver = initialize_driver()
 
+    try:
 
-class Testcommunity():
-    def setup_method(self, method):
-        self.driver = webdriver.Chrome()
-        self.vars = {}
-
-    def teardown_method(self, method):
-        self.driver.quit()
-
-    def test_testcommunity(self):
         host = get_host_for_selenium_testing()
 
-        self.driver.get(host + "/login")
-        self.driver.find_element(By.LINK_TEXT, "Login").click()
-        self.driver.find_element(By.ID, "email").click()
-        self.driver.find_element(By.ID, "email").send_keys("user1@example.com")
-        self.driver.find_element(By.ID, "password").click()
-        self.driver.find_element(By.ID, "password").send_keys("1234")
-        self.driver.find_element(By.ID, "password").send_keys(Keys.ENTER)
-        self.driver.find_element(By.CSS_SELECTOR, ".sidebar-item:nth-child(8) .align-middle:nth-child(2)").click()
-        self.driver.find_element(By.LINK_TEXT, "Create Community").click()
-        self.driver.find_element(By.ID, "name").click()
-        self.driver.find_element(By.ID, "name").send_keys("Prueba")
-        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
-        self.driver.find_element(By.LINK_TEXT, "Prueba").click()
-        self.driver.find_element(By.LINK_TEXT, "Edit Community").click()
-        self.driver.find_element(By.ID, "name").click()
-        self.driver.find_element(By.ID, "name").send_keys("Prueba de Selenium")
-        self.driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
-        self.driver.find_element(By.CSS_SELECTOR, ".btn-danger").click()
-        self.driver.switch_to.alert.accept()
-        self.driver.find_element(By.LINK_TEXT, "Log out").click()
+        driver.get(f"{host}/")
+        time.sleep(2)
+
+        # Navigate to "Download All"
+        driver.get(f"{host}/dataset/download/all")
+        wait_for_page_to_load(driver)
+        wait_for_page_to_load(driver)
+
+        print("Test passed!")
+
+    finally:
+        close_driver(driver)
+
+
+# Call the test functions
+test_upload_dataset()
+test_download_all_dataset()
+test_community()

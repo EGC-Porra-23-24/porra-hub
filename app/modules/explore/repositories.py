@@ -13,19 +13,27 @@ class ExploreRepository(BaseRepository):
     def __init__(self):
         super().__init__(DataSet)
 
-    def advanced_filter(self, query: query.Query, min_creation_date=None, max_creation_date=None, min_size=None,
-                        max_size=None, min_features=None, max_features=None, **kwargs):
+    def advanced_filter(self, query: query.Query, min_creation_date=None, max_creation_date=None,
+                        min_size=None, max_size=None, min_features=None, max_features=None,
+                        min_models=None, max_models=None, **kwargs):
+        # Miscellaneous
         format = "%Y-%m-%d"
         if min_creation_date:
             min_creation_date = dt.strptime(min_creation_date, format).date().strftime(format)
             query = query.filter(DataSet.created_at >= min_creation_date)
         if max_creation_date:
             max_creation_date = (dt.strptime(max_creation_date, format).date() + timedelta(days=1)).strftime(format)
-            query = query.filter(DataSet.created_at <= max_creation_date)
+            query = query.filter(DataSet.created_at < max_creation_date)
+        # DSMetrics
         if min_features:
             query = query.filter(DSMetrics.number_of_features >= int(min_features))
         if max_features:
             query = query.filter(DSMetrics.number_of_features <= int(max_features))
+        if min_models:
+            query = query.filter(DSMetrics.number_of_models >= int(min_models))
+        if max_models:
+            query = query.filter(DSMetrics.number_of_models <= int(max_models))
+        # GROUP BY DATASET
         query = query.group_by(DataSet.id)
         if min_size:
             query = query.having(func.sum(Hubfile.size) >= min_size)

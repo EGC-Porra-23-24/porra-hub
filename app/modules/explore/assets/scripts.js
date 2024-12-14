@@ -25,6 +25,8 @@ function send_query() {
                 max_creation_date: document.querySelector('#max_creation_date').value,
                 min_size: document.querySelector('#min_size').value,
                 max_size: document.querySelector('#max_size').value,
+                min_models: document.querySelector('#min_models').value,
+                max_models: document.querySelector('#max_models').value,
                 min_features: document.querySelector('#min_features').value,
                 max_features: document.querySelector('#max_features').value
             };
@@ -197,6 +199,13 @@ function clearFilters() {
     sortingOptions.forEach(option => {
         option.checked = option.value == "newest"; // replace "default" with whatever your default value is
         // option.dispatchEvent(new Event('input', {bubbles: true}));
+    });
+
+    // Reset the adavanced option
+    let advancedOptions = document.querySelectorAll(
+        '#min_creation_date, #max_creation_date, #min_size, #max_size, #min_models, #max_models, #min_features, #max_features');
+    advancedOptions.forEach(option => {
+        option.value = ""; 
     });
 
     // Perform a new search with the reset filters
