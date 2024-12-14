@@ -111,8 +111,7 @@ class DatasetZipBehavior(TaskSet):
 
 
 class DatasetUser(HttpUser):
-    tasks = [DatasetBehavior, DatasetBehavior.download_all_datasets, DatasetZipBehavior]  # Asegurándonos de agregar la tarea de descarga
+    tasks = [DatasetBehavior, DatasetBehavior.download_all_datasets, DatasetZipBehavior]
     min_wait = 5000  # Tiempo mínimo de espera entre tareas (5 segundos)
     max_wait = 9000  # Tiempo máximo de espera entre tareas (9 segundos)
     host = get_host_for_locust_testing()  # Cambiar con tu URL base para testing
-
