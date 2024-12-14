@@ -180,13 +180,14 @@ def test_upload_dataset_zip():
 
         # Assert the final URL (if required)
         assert driver.current_url == f"{host}/dataset/list", "Test failed!"
-        
-          print("Test passed!")
+
+        print("Test passed!")
 
     finally:
+
         close_driver(driver)
 
-        
+
 def test_download_all_dataset():
     driver = initialize_driver()
 
@@ -208,12 +209,9 @@ def test_download_all_dataset():
         close_driver(driver)
 
 
-
-
 # Call the test functions
 test_upload_dataset()
 
 test_download_all_dataset()
 
 test_upload_dataset_zip()
-
