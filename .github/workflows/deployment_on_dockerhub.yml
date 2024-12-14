@@ -10,8 +10,7 @@
 name: Publish image in Docker Hub
 
 on:
-  release:
-    types: [published]
+  workflow_call:
 
 jobs:
   push_to_registry:
