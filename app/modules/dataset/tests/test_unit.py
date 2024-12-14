@@ -1,5 +1,9 @@
 import pytest
 
+from io import BytesIO
+from zipfile import ZipFile
+
+
 
 @pytest.fixture(scope="module")
 def test_client(test_client):
@@ -155,3 +159,86 @@ def test_upload_github_request_error(test_client, login):
     # Verificar la respuesta
     assert response.status_code == 500  # Aseguramos que el status code es 500
     assert response_data["error"].startswith("Error uploading file from GitHub")
+
+    
+def test_upload_valid_zip(test_client, login):
+    """
+    Prueba para cargar un archivo ZIP válido.
+    """
+    remember_token, session = login
+
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        zip_file.writestr('testfile.uvl', 'contenido del archivo UVL')
+
+    zip_buffer.seek(0)
+    data = {
+        'file': (zip_buffer, 'test.zip')
+    }
+
+    headers = {
+        'Cookie': f'remember_token={remember_token}; session={session}'
+    }
+
+    response = test_client.post('/dataset/file/upload/zip',
+                                data=data, headers=headers, content_type='multipart/form-data')
+
+    assert response.status_code == 200
+
+
+def test_upload_zip_without_uvl(test_client, login):
+    """
+    Verifica que no se encuentran archivos .uvl en el zip.
+    """
+    remember_token, session = login
+
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        zip_file.writestr('testfile.txt', 'contenido del archivo de texto')
+
+    zip_buffer.seek(0)
+    data = {
+        'file': (zip_buffer, 'test.zip')
+    }
+
+    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+
+    response = test_client.post('/dataset/file/upload/zip',
+                                data=data, headers=headers, content_type='multipart/form-data')
+
+    assert response.status_code == 400
+
+
+def test_upload_invalid_zip(test_client, login):
+    """
+    Verifica que un archivo que no es un ZIP da un error.
+    """
+    remember_token, session = login
+
+    data = {
+        'file': (BytesIO(b"Not a zip file"), 'invalid.zip')
+    }
+
+    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+
+    response = test_client.post('/dataset/file/upload/zip',
+                                data=data, headers=headers, content_type='multipart/form-data')
+
+    assert response.status_code == 400
+
+
+def test_upload_no_file(test_client, login):
+    """
+    Verifica que no se envía archivo en la solicitud.
+    """
+    remember_token, session = login
+
+    data = {}
+
+    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+
+    response = test_client.post('/dataset/file/upload/zip',
+                                data=data, headers=headers, content_type='multipart/form-data')
+
+    assert response.status_code == 400
+
