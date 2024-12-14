@@ -132,7 +132,6 @@ def test_upload_dataset():
         close_driver(driver)
 
 
-        
 def test_upload_dataset_zip():
     driver = initialize_driver()
 
@@ -187,9 +186,8 @@ def test_upload_dataset_zip():
     finally:
 
         close_driver(driver)
-        
-      
-        
+
+
 def test_upload_dataset_github():
     driver = initialize_driver()
 
@@ -246,8 +244,6 @@ def test_upload_dataset_github():
         close_driver(driver)
 
 
-
-
 def test_download_all_dataset():
     driver = initialize_driver()
 
@@ -277,4 +273,3 @@ test_download_all_dataset()
 test_upload_dataset_github()
 
 test_upload_dataset_zip()
-

@@ -6,7 +6,6 @@ from core.locust.common import get_csrf_token
 from core.environment.host import get_host_for_locust_testing
 
 
-
 class DatasetBehavior(TaskSet):
     def on_start(self):
         self.dataset()
@@ -63,8 +62,6 @@ class DatasetZipBehavior(TaskSet):
         else:
             print(f"Respuesta inesperada: {response.status_code}")
 
-            
-
 
 class DatasetGithubBehavior(TaskSet):
 
@@ -115,10 +112,8 @@ class DatasetGithubBehavior(TaskSet):
             print(f"Respuesta inesperada: {response.status_code}")
 
 
-
-
 class DatasetUser(HttpUser):
-    tasks = [DatasetBehavior, DatasetGithubBehavior DatasetZipBehavior]
+    tasks = [DatasetBehavior, DatasetGithubBehavior, DatasetZipBehavior]
     min_wait = 5000
     max_wait = 9000
     host = get_host_for_locust_testing()

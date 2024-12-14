@@ -4,7 +4,6 @@ from io import BytesIO
 from zipfile import ZipFile
 
 
-
 @pytest.fixture(scope="module")
 def test_client(test_client):
     """
@@ -160,7 +159,7 @@ def test_upload_github_request_error(test_client, login):
     assert response.status_code == 500  # Aseguramos que el status code es 500
     assert response_data["error"].startswith("Error uploading file from GitHub")
 
-    
+
 def test_upload_valid_zip(test_client, login):
     """
     Prueba para cargar un archivo ZIP válido.
@@ -241,4 +240,3 @@ def test_upload_no_file(test_client, login):
                                 data=data, headers=headers, content_type='multipart/form-data')
 
     assert response.status_code == 400
-
