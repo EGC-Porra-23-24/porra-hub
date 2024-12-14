@@ -25,7 +25,7 @@ jobs:
     uses: ./.github/workflows/tests.yml
 
   codacy:
-    needs: tests
+    needs: lint
     uses: ./.github/workflows/codacy.yml
 
   validate-main-branch:
