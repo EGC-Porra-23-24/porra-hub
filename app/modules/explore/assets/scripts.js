@@ -201,6 +201,13 @@ function clearFilters() {
         // option.dispatchEvent(new Event('input', {bubbles: true}));
     });
 
+    // Reset the adavanced option
+    let advancedOptions = document.querySelectorAll(
+        '#min_creation_date, #max_creation_date, #min_size, #max_size, #min_models, #max_models, #min_features, #max_features');
+    advancedOptions.forEach(option => {
+        option.value = ""; 
+    });
+
     // Perform a new search with the reset filters
     queryInput.dispatchEvent(new Event('input', {bubbles: true}));
 }
