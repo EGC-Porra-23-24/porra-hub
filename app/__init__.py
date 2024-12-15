@@ -67,3 +67,4 @@ def create_app(config_name='development'):
 
 
 app = create_app()
+app_context = app.app_context
