@@ -75,6 +75,7 @@ class FakenodoService(BaseService):
         try:
             deposition = self.deposition_repository.create_deposition(metadata)
             return {
+                "conceptrecid": f"fakenodo-{deposition.id}",
                 "id": deposition.id,
                 "metadata": metadata,
                 "message": "Dataset created successfully in Fakenodo."

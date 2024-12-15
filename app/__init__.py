@@ -68,3 +68,4 @@ def create_app(config_name='development'):
 
 
 app = create_app()
+is_debug = app.debug
