@@ -131,5 +131,27 @@ def test_upload_dataset():
         close_driver(driver)
 
 
-# Call the test function
+def test_download_all_dataset():
+    driver = initialize_driver()
+
+    try:
+
+        host = get_host_for_selenium_testing()
+
+        driver.get(f"{host}/")
+        time.sleep(2)
+
+        # Navigate to "Download All"
+        driver.get(f"{host}/dataset/download/all")
+        wait_for_page_to_load(driver)
+        wait_for_page_to_load(driver)
+
+        print("Test passed!")
+
+    finally:
+        close_driver(driver)
+
+
+# Call the test functions
 test_upload_dataset()
+test_download_all_dataset()

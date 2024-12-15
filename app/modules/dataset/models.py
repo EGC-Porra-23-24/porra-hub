@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from flask import request
+from flask import request, url_for
 from sqlalchemy import Enum as SQLAlchemyEnum
 
 from app import db
@@ -47,8 +47,8 @@ class Author(db.Model):
 
 class DSMetrics(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    number_of_models = db.Column(db.String(120))
-    number_of_features = db.Column(db.String(120))
+    number_of_models = db.Column(db.Integer)
+    number_of_features = db.Column(db.Integer)
 
     def __repr__(self):
         return f'DSMetrics<models={self.number_of_models}, features={self.number_of_features}>'
@@ -77,6 +77,9 @@ class DataSet(db.Model):
 
     ds_meta_data = db.relationship('DSMetaData', backref=db.backref('data_set', uselist=False))
     feature_models = db.relationship('FeatureModel', backref='data_set', lazy=True, cascade="all, delete")
+
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=True)
+    community = db.relationship('Community', backref='datasets')
 
     def name(self):
         return self.ds_meta_data.title
@@ -127,6 +130,10 @@ class DataSet(db.Model):
             'files_count': self.get_files_count(),
             'total_size_in_bytes': self.get_file_total_size(),
             'total_size_in_human_format': self.get_file_total_size_for_human(),
+            'community_name': self.community.name if self.community else None,
+            'community_id': self.community_id if self.community else None,
+            'community_url': url_for('community.view_community',
+                                     community_id=self.community_id, _external=True) if self.community else None
         }
 
     def __repr__(self):

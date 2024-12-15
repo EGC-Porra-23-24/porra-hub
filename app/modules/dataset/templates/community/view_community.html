@@ -1,0 +1,160 @@
+{% extends "base_template.html" %}
+
+{% block title %}View Community{% endblock %}
+
+{% block content %}
+
+<h1 class="h3 mb-3">Community: {{ community.name }}</h1>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Details</h5>
+        {% if not is_member(community, current_user) %}
+            {% if not is_request(community, current_user) %}
+                <div class="d-flex justify-content-end mb-3">
+                    <form method="POST" action="{{ url_for('community.request_community', community_id=community.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-primary" onclick="return confirm('Do you want to join this community?');">
+                            <i data-feather="user-plus"></i> Request to join
+                        </button>
+                    </form>    
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <p><strong>Created At:</strong> {{ community.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        
+        <p><strong>Owners:</strong> 
+            {% if owners %}
+                {{ owners | join(', ') }}
+            {% else %}
+                No owners
+            {% endif %}
+        </p>
+        
+        <p><strong>Members:</strong> 
+            {% if members %}
+                {{ members | join(', ') }}
+            {% else %}
+                No members
+            {% endif %}
+        </p>
+
+        {% if is_owner(community, current_user) %}
+            {% if requests %}
+                <p><strong>Requests:</strong></p>
+                <ul>
+                    {% for request in requests %}
+                        <li>
+                            {{ request.profile.surname }}, {{ request.profile.name }}
+                            <form method="POST" action="{{ url_for('community.handle_request', community_id=community.id, user_id=request.id, action='accept') }}" style="display: inline;">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i data-feather="user-plus"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('community.handle_request', community_id=community.id, user_id=request.id, action='reject') }}" style="display: inline;">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i data-feather="user-x"></i>
+                                </button>                            
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No requests yet.</p>
+            {% endif %}
+    {% endif %}
+
+    </div>
+</div>
+
+
+<div class="mb-3">
+    {% if is_owner(community, current_user) %}
+        <a href="{{ url_for('community.edit_community', community_id=community.id) }}" class="btn btn-warning">
+            <i data-feather="edit"></i> Edit Community
+        </a>
+        <form method="POST" action="{{ url_for('community.delete_community', community_id=community.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this community?');">
+                <i data-feather="trash-2"></i> Delete Community
+            </button>
+        </form>
+    {% endif %}
+
+    {% if is_member(community, current_user) and not is_owner(community, current_user) %}
+        <form method="POST" action="{{ url_for('community.leave_community', community_id=community.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-secondary">
+                <i data-feather="log-out"></i> Leave Community
+            </button>
+        </form>
+    {% endif %}
+    
+    {% if datasets %}
+        <div class="mt-3">
+            {% for dataset in datasets %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5><b>{{ dataset.ds_meta_data.title }}</b></h5>
+                    </div>
+                    <div>
+                        {% if dataset.ds_meta_data.dataset_doi %}
+                            <h5><b><a href="{{ dataset.get_uvlhub_doi() }}">{{ dataset.ds_meta_data.title }}</a></b></h5>
+                        {% else %}
+                            <h5><b><a href="{{ url_for('dataset.get_unsynchronized_dataset', dataset_id=dataset.id) }}">{{ dataset.ds_meta_data.title }}</a></b></h5>
+                        {% endif %}
+                    </div>
+                    <p class="text-secondary">{{ dataset.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+
+                    <div class="row mb-4">
+                        <div class="col-md-4 col-12">
+                            <span class="text-secondary">
+                                Description
+                            </span>
+                        </div>
+                        <div class="col-md-8 col-12">
+                            <p class="card-text">{{ dataset.ds_meta_data.description }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-4 col-12">
+                            <span class="text-secondary">
+                                Authors
+                            </span>
+                        </div>
+                        <div class="col-md-8 col-12">
+                            {% for author in dataset.ds_meta_data.authors %}
+                                <p class="p-0 m-0">
+                                    {{ author.name }}
+                                    {% if author.affiliation %}
+                                        ({{ author.affiliation }})
+                                    {% endif %}
+                                    {% if author.orcid %}
+                                        ({{ author.orcid }})
+                                    {% endif %}
+                                </p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-4 col-12">
+                            <span class="text-secondary">
+                                Tags
+                            </span>
+                        </div>
+                        <div class="col-md-8 col-12">
+                            {% for tag in dataset.ds_meta_data.tags.split(',') %}
+                                <span class="badge bg-secondary">{{ tag.strip() }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
