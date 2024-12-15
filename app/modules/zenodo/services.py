@@ -19,10 +19,6 @@ load_dotenv()
 
 
 class ZenodoService(BaseService):
-    @staticmethod
-    def get_name():
-        return "Zenodo"
-
     def get_zenodo_url(self):
         flask_env = os.getenv("FLASK_ENV", "development")
 

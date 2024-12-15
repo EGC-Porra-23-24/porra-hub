@@ -18,9 +18,6 @@ load_dotenv()
 
 
 class FakenodoService(BaseService):
-    def get_name():
-        return "Fakenodo"
-
     def __init__(self):
         self.deposition_repository = DepositionRepository()
 
