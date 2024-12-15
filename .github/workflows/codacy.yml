@@ -48,6 +48,11 @@ jobs:
         pip install pip-audit
         pip-audit || true
 
+    - name: Debug Enviroment Variable
+      run: echo "Token: $CODACY_PROJECT_TOKEN"
+      env:
+        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+
     - name: Upload coverage to Codacy
       run: |
         pip install codacy-coverage
