@@ -1,6 +1,15 @@
 import pytest
 from io import BytesIO
 from zipfile import ZipFile
+from unittest.mock import patch
+
+from app.modules.auth.models import User
+from app.modules.dataset.forms import DataSetForm
+from app.modules.dataset.models import Author, DSMetaData, DSMetrics, DataSet
+from app.modules.dataset.services import DataSetService
+from app.modules.featuremodel.models import FMMetaData, FeatureModel
+from app.modules.hubfile.models import Hubfile
+from app.modules.profile.models import UserProfile
 
 
 @pytest.fixture(scope="module")
@@ -120,16 +129,6 @@ def test_upload_no_file(test_client, login):
                                 data=data, headers=headers, content_type='multipart/form-data')
 
     assert response.status_code == 400
-from unittest.mock import patch
-import pytest
-
-from app.modules.auth.models import User
-from app.modules.dataset.forms import DataSetForm
-from app.modules.dataset.models import Author, DSMetaData, DSMetrics, DataSet
-from app.modules.dataset.services import DataSetService
-from app.modules.featuremodel.models import FMMetaData, FeatureModel
-from app.modules.hubfile.models import Hubfile
-from app.modules.profile.models import UserProfile
 
 
 @pytest.fixture()
