@@ -18,6 +18,8 @@ load_dotenv()
 
 
 class FakenodoService(BaseService):
+    def get_name():
+        return "Fakenodo"
 
     def __init__(self):
         self.deposition_repository = DepositionRepository()
@@ -44,7 +46,6 @@ class FakenodoService(BaseService):
         Returns:
             dict: The response in JSON format with the details of the created deposition.
         """
-
         logger.info("Dataset sending to Fakenodo...")
         logger.info(f"Publication type...{dataset.ds_meta_data.publication_type.value}")
 

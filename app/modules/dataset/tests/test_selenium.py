@@ -129,7 +129,3 @@ def test_upload_dataset():
 
         # Close the browser
         close_driver(driver)
-
-
-# Call the test function
-test_upload_dataset()
