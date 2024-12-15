@@ -27,7 +27,7 @@ jobs:
 
     steps:
     - name: Debug Enviroment Variable
-      run: echo "Token: $CODACY_PROJECT_TOKEN"
+      run: echo "Token- $CODACY_PROJECT_TOKEN"
       env:
         CODACY_PROJECT_TOKEN: ${{ inputs.codacy-token }}
 
