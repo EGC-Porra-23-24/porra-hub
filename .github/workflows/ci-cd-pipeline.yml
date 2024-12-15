@@ -27,6 +27,9 @@ jobs:
   codacy:
     needs: lint
     uses: ./.github/workflows/codacy.yml
+    secrets:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }} 
+
 
   validate-main-branch:
     name: Validate Main Branch
