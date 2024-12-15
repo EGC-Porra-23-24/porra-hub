@@ -4,6 +4,7 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from core.environment.host import get_host_for_selenium_testing
 from core.selenium.common import initialize_driver, close_driver
@@ -131,12 +132,88 @@ def test_upload_dataset():
         close_driver(driver)
 
 
-def test_community():
+def test_upload_dataset_zip():
     driver = initialize_driver()
 
     try:
         host = get_host_for_selenium_testing()
 
+        # Open the login page
+        driver.get(f"{host}/login")
+        wait_for_page_to_load(driver)
+
+        driver.find_element(By.ID, "email").send_keys("user1@example.com")
+        driver.find_element(By.ID, "password").send_keys("1234")
+
+        WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "submit"))
+        ).click()
+        wait_for_page_to_load(driver)
+
+        # Navigate to "Upload from ZIP"
+        driver.get(f"{host}/dataset/upload/zip")
+        wait_for_page_to_load(driver)
+        wait_for_page_to_load(driver)
+
+        # Fill out title and description
+        driver.find_element(By.ID, "title").send_keys("Test Selenium IDE zip")
+        driver.find_element(By.ID, "desc").send_keys("Test Selenium IDE zip")
+
+        file_path = os.path.abspath("app/modules/dataset/uvl_examples/prueba.zip")
+
+        if os.path.exists(file_path):
+            file_input = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']"))
+            )
+            file_input.send_keys(file_path)
+        else:
+            raise FileNotFoundError(f"El archivo {file_path} no se encontró.")
+
+        check = driver.find_element(By.ID, "agreeCheckbox")
+        check.send_keys(Keys.SPACE)
+        wait_for_page_to_load(driver)
+
+        upload_btn = driver.find_element(By.ID, "upload_button")
+        upload_btn.send_keys(Keys.RETURN)
+        wait_for_page_to_load(driver)
+        time.sleep(2)
+
+        # Assert the final URL (if required)
+        assert driver.current_url == f"{host}/dataset/list", "Test failed!"
+
+        print("Test passed!")
+
+    finally:
+
+        close_driver(driver)
+
+
+def test_download_all_dataset():
+    driver = initialize_driver()
+
+    try:
+
+        host = get_host_for_selenium_testing()
+
+        driver.get(f"{host}/")
+        time.sleep(2)
+
+        # Navigate to "Download All"
+        driver.get(f"{host}/dataset/download/all")
+        wait_for_page_to_load(driver)
+        wait_for_page_to_load(driver)
+
+        print("Test passed!")
+
+    finally:
+        close_driver(driver)
+
+
+def test_community():
+    driver = initialize_driver()
+
+    try:
+        host = get_host_for_selenium_testing()
         driver.get(host + "/login")
         wait_for_page_to_load(driver)
         driver.find_element(By.LINK_TEXT, "Login").click()
@@ -165,33 +242,14 @@ def test_community():
         driver.find_element(By.LINK_TEXT, "Log out").click()
 
     finally:
-
-        # Close the browser
-        close_driver(driver)
-
-
-def test_download_all_dataset():
-    driver = initialize_driver()
-
-    try:
-
-        host = get_host_for_selenium_testing()
-
-        driver.get(f"{host}/")
-        time.sleep(2)
-
-        # Navigate to "Download All"
-        driver.get(f"{host}/dataset/download/all")
-        wait_for_page_to_load(driver)
-        wait_for_page_to_load(driver)
-
-        print("Test passed!")
-
-    finally:
         close_driver(driver)
 
 
 # Call the test functions
 test_upload_dataset()
+
 test_download_all_dataset()
+
+test_upload_dataset_zip()
+
 test_community()

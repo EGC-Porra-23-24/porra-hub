@@ -10,7 +10,7 @@ from app.modules.dataset.models import (
     PublicationType,
     DSMetrics,
     Author)
-from datetime import datetime, timezone
+from datetime import datetime
 from dotenv import load_dotenv
 
 
@@ -26,9 +26,15 @@ class DataSetSeeder(BaseSeeder):
         if not user1 or not user2:
             raise Exception("Users not found. Please seed users first.")
 
-        # Create DSMetrics instance
-        ds_metrics = DSMetrics(number_of_models=5, number_of_features=50)
-        seeded_ds_metrics = self.seed([ds_metrics])[0]
+        # Create DSMetrics instances
+        base_ds_metrics = DSMetrics(number_of_models=2, number_of_features=20)
+        little_models_ds_metrics = DSMetrics(number_of_models=1, number_of_features=20)  # Needs file with 20 feats
+        many_models_ds_metrics = DSMetrics(number_of_models=3, number_of_features=30)
+        little_features_ds_metrics = DSMetrics(number_of_models=2, number_of_features=10)  # Needs file with 5 feats
+        many_features_ds_metrics = DSMetrics(number_of_models=2, number_of_features=40)  # Needs file with 20 feats
+        ds_metrics_list = [base_ds_metrics, little_models_ds_metrics, many_models_ds_metrics,
+                           little_features_ds_metrics, many_features_ds_metrics]
+        seeded_ds_metrics = self.seed(ds_metrics_list)
 
         # Create DSMetaData instances
         ds_meta_data_list = [
@@ -40,8 +46,8 @@ class DataSetSeeder(BaseSeeder):
                 publication_doi=f'10.1234/dataset{i+1}',
                 dataset_doi=f'10.1234/dataset{i+1}',
                 tags='tag1, tag2',
-                ds_metrics_id=seeded_ds_metrics.id
-            ) for i in range(4)
+                ds_metrics_id=seeded_ds_metrics[i-2].id if i in range(3, 7) else seeded_ds_metrics[0].id
+            ) for i in range(7)
         ]
         seeded_ds_meta_data = self.seed(ds_meta_data_list)
 
@@ -51,8 +57,8 @@ class DataSetSeeder(BaseSeeder):
                 name=f'Author {i+1}',
                 affiliation=f'Affiliation {i+1}',
                 orcid=f'0000-0000-0000-000{i}',
-                ds_meta_data_id=seeded_ds_meta_data[i % 4].id
-            ) for i in range(4)
+                ds_meta_data_id=seeded_ds_meta_data[i % 7].id
+            ) for i in range(7)
         ]
         self.seed(authors)
 
@@ -70,8 +76,9 @@ class DataSetSeeder(BaseSeeder):
                 user_id=user1.id if i % 2 == 0 else user2.id,
                 ds_meta_data_id=seeded_ds_meta_data[i].id,
                 community_id=community1.id if i % 3 == 0 else community2.id if i % 3 == 1 else community3.id,
-                created_at=datetime.now(timezone.utc)
-            ) for i in range(4)
+                created_at=datetime.strptime('2024-12-9' if i == 1 else '2024-12-11' if i == 2 else '2024-12-10',
+                                             '%Y-%m-%d')
+            ) for i in range(7)
         ]
         seeded_datasets = self.seed(datasets)
 
@@ -85,7 +92,7 @@ class DataSetSeeder(BaseSeeder):
                 publication_doi=f'10.1234/fm{i+1}',
                 tags='tag1, tag2',
                 uvl_version='1.0'
-            ) for i in range(12)
+            ) for i in range(14)
         ]
         seeded_fm_meta_data = self.seed(fm_meta_data_list)
 
@@ -96,15 +103,15 @@ class DataSetSeeder(BaseSeeder):
                 affiliation=f'Affiliation {i+5}',
                 orcid=f'0000-0000-0000-000{i+5}',
                 fm_meta_data_id=seeded_fm_meta_data[i].id
-            ) for i in range(12)
+            ) for i in range(14)
         ]
         self.seed(fm_authors)
 
         feature_models = [
             FeatureModel(
-                data_set_id=seeded_datasets[i // 3].id,
+                data_set_id=seeded_datasets[4].id if i == 7 else seeded_datasets[i // 2].id,
                 fm_meta_data_id=seeded_fm_meta_data[i].id
-            ) for i in range(12)
+            ) for i in range(14)
         ]
         seeded_feature_models = self.seed(feature_models)
 
@@ -112,7 +119,7 @@ class DataSetSeeder(BaseSeeder):
         load_dotenv()
         working_dir = os.getenv('WORKING_DIR', '')
         src_folder = os.path.join(working_dir, 'app', 'modules', 'dataset', 'uvl_examples')
-        for i in range(12):
+        for i in range(14):
             file_name = f'file{i+1}.uvl'
             feature_model = seeded_feature_models[i]
             dataset = next(ds for ds in seeded_datasets if ds.id == feature_model.data_set_id)
