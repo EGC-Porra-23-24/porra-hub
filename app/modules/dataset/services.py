@@ -48,6 +48,7 @@ def calculate_features(file_path):
             if line == '\n':
                 # Breakpoint
                 return odd_tabs_lines
+            line = line.replace(' '*4, '\t')
             n_tabs = len(line) - len(line.lstrip('\t'))
             if (n_tabs % 2 == 1):
                 odd_tabs_lines += 1
