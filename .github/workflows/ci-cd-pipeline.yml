@@ -16,16 +16,12 @@ jobs:
   commits-syntax-checker:
     uses: ./.github/workflows/commits.yml
 
-  lint:
-    needs: commits-syntax-checker
-    uses: ./.github/workflows/lint.yml
-
   tests:
-    needs: lint
+    needs: commits-syntax-checker
     uses: ./.github/workflows/tests.yml
 
   codacy:
-    needs: lint
+    needs: commits-syntax-checker
     uses: ./.github/workflows/codacy.yml
     secrets:
       CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }} 
