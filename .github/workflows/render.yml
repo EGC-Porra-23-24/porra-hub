@@ -2,6 +2,10 @@ name: Deploy to Render
 
 on:
   workflow_call:
+    secrets:
+      RENDER_DEPLOY_HOOK_URL:
+        required: true
+
 
 jobs:
   deploy:
