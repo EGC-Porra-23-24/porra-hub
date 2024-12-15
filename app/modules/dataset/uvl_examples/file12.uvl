@@ -6,14 +6,5 @@ features
                     "Peer 2 Peer"
                     Server
             Messages
-                or
-                    Text
-                    Video
-                    Audio
-        optional
-            "Data Storage"
-            "Media Player"
 
 constraints
-    Server => "Data Storage"
-    Video | Audio => "Media Player"
