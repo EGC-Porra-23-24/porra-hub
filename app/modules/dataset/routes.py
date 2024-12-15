@@ -37,7 +37,7 @@ from app.modules.dataset.services import (
     DOIMappingService,
     CommunityService
 )
-from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter, JSONWriter, AFMWriter
+from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 from app.modules.hubfile.services import HubfileService
 from app.modules.zenodo.services import ZenodoService
@@ -644,7 +644,7 @@ def download_all_dataset():
                         continue
 
                     # Convertir cada archivo a los formatos deseados
-                    for format in ["glencoe", "dimacs", "splot", "json", "afm", "uvl"]:
+                    for format in ["glencoe", "dimacs", "splot", "uvl"]:
                         content = ""
                         name = f"{hubfile.name}_{format}.txt"
 
@@ -671,24 +671,10 @@ def download_all_dataset():
                             with open(temp_file.name, "r") as new_format_file:
                                 content = new_format_file.read()
                             name = f"{hubfile.name}_splot.txt"
-                        elif format == "json":
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
-                            fm = UVLReader(hubfile.get_path()).transform()
-                            JSONWriter(temp_file.name, fm).transform()
-                            with open(temp_file.name, "r") as new_format_file:
-                                content = new_format_file.read()
-                            name = f"{hubfile.name}_json.txt"
-                        elif format == "afm":
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.afm', delete=False)
-                            fm = UVLReader(hubfile.get_path()).transform()
-                            AFMWriter(temp_file.name, fm).transform()
-                            with open(temp_file.name, "r") as new_format_file:
-                                content = new_format_file.read()
-                            name = f"{hubfile.name}_afm.txt"
                         elif format == "uvl":
                             # Para UVL no hacemos transformación adicional, solo agregamos el archivo original
                             content = open(full_path, "r").read()
-                            name = f"{file.name}_uvl.txt"
+                            name = f"{file.name}"
 
                         # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
                         zipf.writestr(os.path.join(dataset_folder, name), content)
