@@ -1,0 +1,149 @@
+name: Auto-format Python files on push
+
+on:
+  push:
+    branches:
+      - 'feature/*'  # Se activa en ramas con prefijo "feature/"
+      - 'fix/*'      # Se activa en ramas con prefijo "fix/"
+    paths:
+      - '**/*.py'    # Solo ejecuta el flujo para archivos Python modificados
+
+permissions:
+  contents: write  # Permite que GitHub Actions haga push de cambios en el repositorio
+
+jobs:
+  lint_and_format:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Aseguramos que descargue el historial completo
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'  # Ajusta la versión de Python según sea necesario
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black autopep8 flake8
+
+    - name: Get modified Python files between second last push and current commit
+      id: get_changed_files
+      run: |
+        # Extraer el nombre de la rama actual
+        branch_name="${GITHUB_REF#refs/heads/}"
+        echo "Branch name: $branch_name"
+
+        # Obtener el penúltimo commit empujado a la rama remota
+        # Usamos 'git log' para obtener los commits de la rama remota y seleccionamos el segundo de la lista
+        last_push_commit=$(git log --oneline origin/$branch_name | head -n 2 | tail -n 1 | awk '{print $1}')  # Penúltimo commit
+        current_commit="${{ github.sha }}"  # El commit actual del flujo de trabajo
+
+        echo "Second last push commit: $last_push_commit"
+        echo "Current commit: $current_commit"
+
+        # Obtener la lista de commits entre el penúltimo push y el commit actual
+        commit_range=$(git log --oneline ${last_push_commit}..${current_commit})
+
+        # Verificar si hay commits en el rango
+        if [ -z "$commit_range" ]; then
+          echo "No commits found between the second last push and the current commit."
+          echo "No files to format."
+          exit 0  # Salir si no hay commits
+        fi
+
+        # Limpiar el archivo de cambios antes de agregar nuevos archivos
+        > changed_files.txt
+
+        # Procesar cada commit en el rango
+        while read commit_hash commit_msg; do
+          echo "Commit: $commit_hash - $commit_msg"
+          
+          # Obtener los archivos .py modificados en cada commit
+          git diff-tree --no-commit-id --name-only -r $commit_hash | grep '\.py$' | while read file; do
+            echo "  - $file"
+            echo "$file" >> changed_files.txt
+          done
+          echo ""
+        done <<< "$commit_range"
+
+        # Verificar si hay archivos modificados
+        if [ ! -s changed_files.txt ]; then
+          echo "No Python files modified."
+          exit 0  # Salir si no hay archivos modificados
+        fi
+
+        cat changed_files.txt  # Mostrar los archivos modificados
+      continue-on-error: true  # Si no hay cambios, no fallar
+
+    - name: Run Black on changed files
+      run: |
+        # Verificar si changed_files.txt existe y no está vacío
+        if [ -s changed_files.txt ]; then
+          # Ejecutar Black para cada archivo Python modificado
+          while IFS= read -r file; do
+            echo "Running Black on $file"
+            black --line-length 120 --quiet "$file"
+          done < changed_files.txt
+        else
+          echo "No files to format with Black."
+        fi
+
+    - name: Run autopep8 on changed files
+      run: |
+        # Verificar si changed_files.txt existe y no está vacío
+        if [ -s changed_files.txt ]; then
+          # Ejecutar autopep8 para cada archivo Python modificado
+          while IFS= read -r file; do
+            echo "Running autopep8 on $file"
+            autopep8 --in-place --aggressive --aggressive "$file"
+          done < changed_files.txt
+        else
+          echo "No files to format with autopep8."
+        fi
+
+    - name: Commit and push changes
+      run: |
+        # Verificar si hay archivos modificados para hacer commit
+        if [ -s changed_files.txt ]; then
+          # Configurar el usuario de git
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          
+          # Bucle para procesar cada archivo modificado individualmente
+          while IFS= read -r file; do
+            # Extraer el módulo solo considerando el primer nivel después de "modules/"
+            MODULE=$(echo "$file" | sed -E 's|^.*modules/([^/]+)/.*|\1|')
+            
+            # Formatear el mensaje de commit con el prefijo adecuado
+            COMMIT_MESSAGE="fix(${MODULE}): Auto-format modified Python files"
+            
+            # Añadir el archivo modificado
+            git add "$file"
+            
+            # Realizar commit solo si hay cambios
+            git diff --cached --quiet || git commit -m "$COMMIT_MESSAGE"
+          done < changed_files.txt
+          
+          # Hacer push de los cambios utilizando el GITHUB_TOKEN
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
+        else
+          echo "No files to commit."
+        fi
+
+    - name: Run Flake8 for linting
+      run: |
+        # Verificar si changed_files.txt existe y no está vacío
+        if [ -s changed_files.txt ]; then
+          # Ejecutar Flake8 para cada archivo Python modificado
+          while IFS= read -r file; do
+            echo "Running Flake8 on $file"
+            flake8 --max-line-length=120 "$file"
+          done < changed_files.txt
+        else
+          echo "No files to lint with Flake8."
+        fi
