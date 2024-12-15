@@ -29,6 +29,8 @@ jobs:
     uses: ./.github/workflows/codacy.yml
     with:
       codacy-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+    env:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }} 
 
   validate-main-branch:
     name: Validate Main Branch
