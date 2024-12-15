@@ -26,6 +26,11 @@ jobs:
         python-version: ['3.11', '3.12']
 
     steps:
+    - name: Debug Enviroment Variable
+      run: echo "$CODACY_PROJECT_TOKEN"
+      env:
+        CODACY_PROJECT_TOKEN: ${{ inputs.codacy-token }}
+
     - name: Checkout code
       uses: actions/checkout@v4
 
@@ -48,11 +53,6 @@ jobs:
         pip install pip-audit
         pip-audit || true
 
-    - name: Debug Enviroment Variable
-      run: echo "$CODACY_PROJECT_TOKEN"
-      env:
-        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-
     - name: Upload coverage to Codacy
       run: |
         pip install codacy-coverage
@@ -66,4 +66,4 @@ jobs:
         MARIADB_TEST_DATABASE: uvlhubdb_test
         MARIADB_USER: uvlhub_user
         MARIADB_PASSWORD: uvlhub_password
-        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        CODACY_PROJECT_TOKEN: ${{ inputs.codacy-token }}
