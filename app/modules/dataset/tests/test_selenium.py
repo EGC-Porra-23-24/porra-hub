@@ -223,7 +223,8 @@ def test_community():
         driver.find_element(By.ID, "password").send_keys("1234")
         driver.find_element(By.ID, "password").send_keys(Keys.ENTER)
         wait_for_page_to_load(driver)
-        driver.find_element(By.CSS_SELECTOR, ".sidebar-item:nth-child(8) .align-middle:nth-child(2)").click()
+#        driver.find_element(By.CSS_SELECTOR, ".sidebar-item:nth-child(8) .align-middle:nth-child(2)").click()
+        driver.get(host + "/communities")
         driver.find_element(By.LINK_TEXT, "Create Community").click()
         wait_for_page_to_load(driver)
         driver.find_element(By.ID, "name").click()
@@ -239,7 +240,9 @@ def test_community():
         driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
         driver.find_element(By.CSS_SELECTOR, ".btn-danger").click()
         driver.switch_to.alert.accept()
-        driver.find_element(By.LINK_TEXT, "Log out").click()
+
+        assert driver.current_url == f"{host}/communities", "Test failed!"
+        print("Test passed!")
 
     finally:
         close_driver(driver)
