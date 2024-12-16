@@ -1,7 +1,8 @@
 import pytest
 from flask import url_for
 from app import create_app, db
-from app.modules.auth.models import User, Community
+from app.modules.auth.models import User
+from app.modules.dataset.models import Community
 from flask_login import login_user, logout_user
 from app.modules.dataset.services import CommunityService, DataSetService
 from app.modules.profile.models import UserProfile
@@ -664,7 +665,6 @@ def test_dsmetrics_both(dataset_service, current_user, test_app):
         dataset_service.create_from_form(form=form, current_user=current_user)
         mock_create_dsmetrics.assert_called_once_with(number_of_models=2, number_of_features=34)
 
-
 # Caso: URL válida de GitHub con archivo ZIP
 def test_upload_github_valid_zip(test_client, login):
     remember_token, session = login  # Obtenemos el token de autenticación
@@ -751,3 +751,4 @@ def test_upload_github_request_error(test_client, login):
     # Verificar la respuesta
     assert response.status_code == 500  # Aseguramos que el status code es 500
     assert response_data["error"].startswith("Error uploading file from GitHub")
+
