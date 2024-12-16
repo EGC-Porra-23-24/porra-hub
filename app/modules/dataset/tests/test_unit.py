@@ -6,6 +6,7 @@ from app.modules.dataset.models import Community
 from flask_login import login_user, logout_user
 from app.modules.dataset.services import CommunityService, DataSetService
 from app.modules.profile.models import UserProfile
+
 from io import BytesIO
 from zipfile import ZipFile
 from unittest.mock import patch
@@ -663,3 +664,91 @@ def test_dsmetrics_both(dataset_service, current_user, test_app):
 
         dataset_service.create_from_form(form=form, current_user=current_user)
         mock_create_dsmetrics.assert_called_once_with(number_of_models=2, number_of_features=34)
+
+
+# Caso: URL válida de GitHub con archivo ZIP
+def test_upload_github_valid_zip(test_client, login):
+    remember_token, session = login  # Obtenemos el token de autenticación
+
+    # URL válida del archivo ZIP en GitHub
+    github_url = "https://github.com/jorgomde/prueba-archivos-zip-y-uvl/blob/main/prueba.zip"
+
+    # Crear los headers con las cookies
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}", "Content-Type": "application/json"}
+
+    response = test_client.post(
+        "/dataset/file/upload/github",
+        headers=headers,
+        json={"url": github_url},
+    )
+    response_data = response.get_json()
+
+    # Verificar la respuesta
+    assert response.status_code == 200
+    assert response_data["message"] == "ZIP file uploaded and extracted successfully"
+
+
+# Caso: URL válida de GitHub con archivo UVL
+def test_upload_github_valid_uvl(test_client, login):
+    remember_token, session = login  # Obtenemos el token de autenticación
+
+    github_url = "https://github.com/jorgomde/prueba-archivos-zip-y-uvl/blob/main/file1.uvl"
+
+    # Crear los headers con las cookies
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}", "Content-Type": "application/json"}
+
+    response = test_client.post("/dataset/file/upload/github", json={"url": github_url}, headers=headers)
+    response_data = response.get_json()
+
+    # Verificar la respuesta
+    assert response.status_code == 200
+    assert response_data["message"] == "UVL file uploaded and validated successfully"
+
+
+# Caso: URL inválida de GitHub
+def test_upload_github_invalid_url(test_client, login):
+    remember_token, session = login  # Obtenemos el token de autenticación
+
+    github_url = "https://invalid-url.com/file.zip"
+
+    # Crear los headers con las cookies
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}", "Content-Type": "application/json"}
+
+    response = test_client.post("/dataset/file/upload/github", json={"url": github_url}, headers=headers)
+    response_data = response.get_json()
+
+    # Verificar la respuesta
+    assert response.status_code == 400  # Aseguramos que el status code es 400
+    assert response_data["error"] == "Invalid GitHub URL"
+
+
+# Caso: Falta la URL en la solicitud
+def test_upload_github_missing_url(test_client, login):
+    remember_token, session = login  # Obtenemos el token de autenticación
+
+    # Crear los headers con las cookies
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}", "Content-Type": "application/json"}
+
+    response = test_client.post("/dataset/file/upload/github", json={}, headers=headers)
+    response_data = response.get_json()
+
+    # Verificar la respuesta
+    assert response.status_code == 400  # Aseguramos que el status code es 400
+    assert response_data["error"] == "GitHub URL is required"
+
+
+# Caso: Error genérico al descargar desde GitHub
+def test_upload_github_request_error(test_client, login):
+    remember_token, session = login  # Obtenemos el token de autenticación
+
+    github_url = "https://github.com/user/repo/blob/main/test.zip"
+
+    # Crear los headers con las cookies
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}", "Content-Type": "application/json"}
+
+    response = test_client.post("/dataset/file/upload/github", json={"url": github_url}, headers=headers)
+    response_data = response.get_json()
+
+    # Verificar la respuesta
+    assert response.status_code == 500  # Aseguramos que el status code es 500
+    assert response_data["error"].startswith("Error uploading file from GitHub")
