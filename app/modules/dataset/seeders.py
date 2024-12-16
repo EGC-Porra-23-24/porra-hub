@@ -1,6 +1,6 @@
 import os
 import shutil
-from app.modules.auth.models import Community, User
+from app.modules.auth.models import User
 from app.modules.featuremodel.models import FMMetaData, FeatureModel
 from app.modules.hubfile.models import Hubfile
 from core.seeders.BaseSeeder import BaseSeeder
@@ -9,14 +9,16 @@ from app.modules.dataset.models import (
     DSMetaData,
     PublicationType,
     DSMetrics,
-    Author)
+    Author,
+    Community)
 from datetime import datetime
 from dotenv import load_dotenv
+from app import db
 
 
 class DataSetSeeder(BaseSeeder):
 
-    priority = 2  # Lower priority
+    priority = 3  # Lower priority
 
     def run(self):
         # Retrieve users
@@ -138,3 +140,53 @@ class DataSetSeeder(BaseSeeder):
                 feature_model_id=feature_model.id
             )
             self.seed([uvl_file])
+
+
+class CommunitySeeder(BaseSeeder):
+
+    priority = 2
+
+    def run(self):
+        users = User.query.all()
+
+        communities = [
+            Community(name='Data Science Enthusiasts'),
+            Community(name='AI Researchers'),
+            Community(name='Python Developers'),
+        ]
+
+        seeded_communities = self.seed(communities)
+
+        community_owners = [
+            {"community_id": seeded_communities[0].id, "user_id": users[0].id},
+            {"community_id": seeded_communities[1].id, "user_id": users[1].id},
+        ]
+
+        community_members = [
+            {"community_id": seeded_communities[0].id, "user_id": users[0].id},
+            {"community_id": seeded_communities[0].id, "user_id": users[2].id},
+            {"community_id": seeded_communities[1].id, "user_id": users[1].id},
+            {"community_id": seeded_communities[2].id, "user_id": users[3].id},
+        ]
+
+        community_requests = [
+            {"community_id": seeded_communities[2].id, "user_id": users[0].id},
+            {"community_id": seeded_communities[2].id, "user_id": users[2].id},
+        ]
+
+        for owner in community_owners:
+            community = Community.query.get(owner['community_id'])
+            user = User.query.get(owner['user_id'])
+            community.owners.append(user)
+
+        for member in community_members:
+            community = Community.query.get(member['community_id'])
+            user = User.query.get(member['user_id'])
+            community.members.append(user)
+
+        for request in community_requests:
+            community = Community.query.get(request['community_id'])
+            user = User.query.get(request['user_id'])
+            community.requests.append(user)
+
+        db.session.commit()

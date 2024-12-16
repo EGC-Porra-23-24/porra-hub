@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from flask import request, url_for
@@ -171,3 +171,54 @@ class DOIMapping(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     dataset_doi_old = db.Column(db.String(120))
     dataset_doi_new = db.Column(db.String(120))
+
+
+community_owners = db.Table(
+    'community_owners',
+    db.metadata,
+    db.Column('community_id', db.Integer, db.ForeignKey('community.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
+community_members = db.Table(
+    'community_members',
+    db.metadata,
+    db.Column('community_id', db.Integer, db.ForeignKey('community.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
+community_request = db.Table(
+    'community_request',
+    db.metadata,
+    db.Column('community_id', db.Integer, db.ForeignKey('community.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
+
+class Community(db.Model):
+    __tablename__ = 'community'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    owners = db.relationship(
+        'User',
+        secondary=community_owners,
+        backref=db.backref('owned_communities', lazy='dynamic'),
+        lazy='dynamic'
+    )
+
+    members = db.relationship(
+        'User',
+        secondary=community_members,
+        backref=db.backref('joined_communities', lazy='dynamic'),
+        lazy='dynamic'
+    )
+
+    requests = db.relationship(
+        'User',
+        secondary=community_request,
+        backref=db.backref('requested_communities', lazy='dynamic'),
+        lazy='dynamic'
+    )

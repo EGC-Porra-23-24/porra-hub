@@ -12,12 +12,16 @@ from app.modules.dataset.models import (
     DSMetaData,
     DSMetrics,
     DSViewRecord,
-    DataSet
+    DataSet,
+    Community,
+    community_members,
+    community_owners,
+    community_request
 )
 from core.repositories.BaseRepository import BaseRepository
 
 from app import db
-from app.modules.auth.models import Community, User, community_request, community_members, community_owners
+from app.modules.auth.models import User
 
 logger = logging.getLogger(__name__)
 
