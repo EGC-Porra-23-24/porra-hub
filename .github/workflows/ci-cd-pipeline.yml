@@ -46,3 +46,6 @@ jobs:
   docker-publish:
     needs: validate-main-branch
     uses: ./.github/workflows/deployment_on_dockerhub.yml
+    secrets:
+      DOCKER_USER: ${{ secrets.DOCKER_USER }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}

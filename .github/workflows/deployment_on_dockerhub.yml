@@ -11,6 +11,11 @@ name: Publish image in Docker Hub
 
 on:
   workflow_call:
+    secrets:
+      DOCKER_USER:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
 
 jobs:
   push_to_registry:
