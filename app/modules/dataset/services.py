@@ -48,6 +48,7 @@ def calculate_features(file_path):
             if line == '\n':
                 # Breakpoint
                 return odd_tabs_lines
+            line = line.replace(' '*4, '\t')
             n_tabs = len(line) - len(line.lstrip('\t'))
             if (n_tabs % 2 == 1):
                 odd_tabs_lines += 1
@@ -353,6 +354,21 @@ class CommunityService:
         if result_request:
             raise Exception("Request to join the community is already pending.")
         CommunityRepository.request_community(community_id, current_user)
+
+    @staticmethod
+    def remove_member(community_id, user):
+        community = CommunityService.get_community_by_id(community_id)
+
+        if not community:
+            raise Exception("Community not found")
+
+        if not CommunityService.is_member(community, user):
+            raise Exception("User is not a member of this community.")
+
+        if CommunityService.is_owner(community, user):
+            raise Exception("Owners cannot leave the community.")
+
+        CommunityRepository.remove_member(community, user)
 
     @staticmethod
     def handle_request(community_id, user_id, action):

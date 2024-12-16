@@ -20,9 +20,7 @@ load_dotenv()
 
 
 class ZenodoService(BaseService):
-
     def get_zenodo_url(self):
-
         FLASK_ENV = os.getenv("FLASK_ENV", "development")
         ZENODO_API_URL = ""
 

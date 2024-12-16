@@ -13,6 +13,6 @@ def index():
         return render_template('explore/index.html', form=form, query=query)
 
     if request.method == 'POST':
-        criteria = request.get_json()
+        criteria = request.get_json(cache=False, force=True)
         datasets = ExploreService().filter(**criteria)
         return jsonify([dataset.to_dict() for dataset in datasets])

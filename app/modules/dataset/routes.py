@@ -41,14 +41,16 @@ from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWr
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 from app.modules.hubfile.services import HubfileService
 from app.modules.zenodo.services import ZenodoService
+from app.modules.fakenodo.services import FakenodoService
 
 logger = logging.getLogger(__name__)
 
-
+debug = True  # True -> Fakenodo, False -> Zenodo al subir datasets
 dataset_service = DataSetService()
 author_service = AuthorService()
 dsmetadata_service = DSMetaDataService()
 zenodo_service = ZenodoService()
+fakenodo_service = FakenodoService()
 doi_mapping_service = DOIMappingService()
 ds_view_record_service = DSViewRecordService()
 
@@ -60,8 +62,8 @@ def create_dataset():
 
     form = DataSetForm()
     form.community.choices = [(c.id, c.name) for c in communities]
-    if request.method == "POST":
 
+    if request.method == "POST":
         dataset = None
 
         if not form.validate_on_submit():
@@ -73,40 +75,90 @@ def create_dataset():
             logger.info(f"Created dataset: {dataset}")
             dataset_service.move_feature_models(dataset)
         except Exception as exc:
-            logger.exception(f"Exception while create dataset data in local {exc}")
-            return jsonify({"Exception while create dataset data in local: ": str(exc)}), 400
+            logger.exception(f"Exception while creating dataset in local: {exc}")
+            return jsonify({"Exception while creating dataset in local": str(exc)}), 400
 
-        # send dataset as deposition to Zenodo
+        # Send dataset as deposition to Zenodo/Fakenodo
         data = {}
-        try:
-            zenodo_response_json = zenodo_service.create_new_deposition(dataset)
-            response_data = json.dumps(zenodo_response_json)
-            data = json.loads(response_data)
-        except Exception as exc:
-            data = {}
-            zenodo_response_json = {}
-            logger.exception(f"Exception while create dataset data in Zenodo {exc}")
 
-        if data.get("conceptrecid"):
-            deposition_id = data.get("id")
-
-            # update dataset with deposition id in Zenodo
-            dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
-
+        if debug:
             try:
-                # iterate for each feature model (one feature model = one request to Zenodo)
-                for feature_model in dataset.feature_models:
-                    zenodo_service.upload_file(dataset, deposition_id, feature_model)
+                fakenodo_response_json = fakenodo_service.create_new_deposition(dataset)
+                response_data = json.dumps(fakenodo_response_json)
+                data = json.loads(response_data)
+            except Exception as exc:
+                data = {}
+                fakenodo_response_json = {}
+                logger.exception(
+                    f"Exception while creating dataset in Zenodo: {exc}"
+                )
 
-                # publish deposition
-                zenodo_service.publish_deposition(deposition_id)
+            if data.get("conceptrecid"):
+                deposition_id = data.get("id")
 
-                # update DOI
-                deposition_doi = zenodo_service.get_doi(deposition_id)
-                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
-            except Exception as e:
-                msg = f"it has not been possible upload feature models in Zenodo and update the DOI: {e}"
-                return jsonify({"message": msg}), 200
+                # Update dataset with deposition id in Fakenodo
+                dataset_service.update_dsmetadata(
+                    dataset.ds_meta_data_id, deposition_id=deposition_id
+                )
+
+                try:
+                    # Iterate for each feature model (one feature model = one request to Fakenodo)
+                    for feature_model in dataset.feature_models:
+                        fakenodo_service.upload_file(dataset, deposition_id, feature_model)
+
+                    # Publish deposition
+                    fakenodo_service.publish_deposition(deposition_id)
+
+                    # Update DOI
+                    deposition_doi = fakenodo_service.get_doi(deposition_id)
+                    dataset_service.update_dsmetadata(
+                        dataset.ds_meta_data_id, dataset_doi=deposition_doi
+                    )
+                except Exception as e:
+                    msg = (
+                        f"It has not been possible to upload feature models in "
+                        f"Fakenodo and update the DOI: {e}"
+                    )
+                    return jsonify({"message": msg}), 200
+        else:
+            try:
+                zenodo_response_json = zenodo_service.create_new_deposition(dataset)
+                response_data = json.dumps(zenodo_response_json)
+                data = json.loads(response_data)
+            except Exception as exc:
+                data = {}
+                zenodo_response_json = {}
+                logger.exception(
+                    f"Exception while creating dataset in Zenodo: {exc}"
+                )
+
+            if data.get("conceptrecid"):
+                deposition_id = data.get("id")
+
+                # Update dataset with deposition id in Zenodo
+                dataset_service.update_dsmetadata(
+                    dataset.ds_meta_data_id, deposition_id=deposition_id
+                )
+
+                try:
+                    # Iterate for each feature model (one feature model = one request to Zenodo)
+                    for feature_model in dataset.feature_models:
+                        zenodo_service.upload_file(dataset, deposition_id, feature_model)
+
+                    # Publish deposition
+                    zenodo_service.publish_deposition(deposition_id)
+
+                    # Update DOI
+                    deposition_doi = zenodo_service.get_doi(deposition_id)
+                    dataset_service.update_dsmetadata(
+                        dataset.ds_meta_data_id, dataset_doi=deposition_doi
+                    )
+                except Exception as e:
+                    msg = (
+                        f"It has not been possible to upload feature models in "
+                        f"Zenodo and update the DOI: {e}"
+                    )
+                    return jsonify({"message": msg}), 200
 
         # Delete temp folder
         file_path = current_user.temp_folder()
@@ -763,8 +815,6 @@ def view_community(community_id):
     requests = community.requests.all()
     datasets = DataSetService.get_all_by_community(community_id=community_id)
 
-    print(datasets[0].created_at)
-
     return render_template('community/view_community.html',
                            community=community,
                            current_user=current_user,
@@ -842,6 +892,24 @@ def request_community(community_id):
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
     return redirect(url_for('community.view_community', community_id=community_id))
+
+
+@community_bp.route('/community/<int:community_id>/leave', methods=['POST'])
+@login_required
+def leave_community(community_id):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community:
+        return "Community not found", 404
+
+    if not CommunityService.is_member(community, current_user):
+        return "Forbidden", 403
+
+    if CommunityService.is_owner(community, current_user):
+        return "Owners cannot leave the community.", 403
+
+    CommunityService.remove_member(community_id, current_user)
+    flash("You have left the community successfully.", "success")
+    return redirect(url_for('community.list_communities'))
 
 
 @community_bp.route('/community/<int:community_id>/requests/<int:user_id>/<string:action>', methods=['POST'])
