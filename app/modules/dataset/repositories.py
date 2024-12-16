@@ -12,12 +12,16 @@ from app.modules.dataset.models import (
     DSMetaData,
     DSMetrics,
     DSViewRecord,
-    DataSet
+    DataSet,
+    Community,
+    community_members,
+    community_owners,
+    community_request,
 )
 from core.repositories.BaseRepository import BaseRepository
 
 from app import db
-from app.modules.auth.models import Community, User, community_request, community_members, community_owners
+from app.modules.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -61,16 +65,16 @@ class DSViewRecordRepository(BaseRepository):
         return self.model.query.filter_by(
             user_id=current_user.id if current_user.is_authenticated else None,
             dataset_id=dataset.id,
-            view_cookie=user_cookie
+            view_cookie=user_cookie,
         ).first()
 
     def create_new_record(self, dataset: DataSet, user_cookie: str) -> DSViewRecord:
         return self.create(
-                user_id=current_user.id if current_user.is_authenticated else None,
-                dataset_id=dataset.id,
-                view_date=datetime.now(timezone.utc),
-                view_cookie=user_cookie,
-            )
+            user_id=current_user.id if current_user.is_authenticated else None,
+            dataset_id=dataset.id,
+            view_date=datetime.now(timezone.utc),
+            view_cookie=user_cookie,
+        )
 
 
 class DataSetRepository(BaseRepository):
@@ -101,18 +105,10 @@ class DataSetRepository(BaseRepository):
         )
 
     def count_synchronized_datasets(self):
-        return (
-            self.model.query.join(DSMetaData)
-            .filter(DSMetaData.dataset_doi.isnot(None))
-            .count()
-        )
+        return self.model.query.join(DSMetaData).filter(DSMetaData.dataset_doi.isnot(None)).count()
 
     def count_unsynchronized_datasets(self):
-        return (
-            self.model.query.join(DSMetaData)
-            .filter(DSMetaData.dataset_doi.is_(None))
-            .count()
-        )
+        return self.model.query.join(DSMetaData).filter(DSMetaData.dataset_doi.is_(None)).count()
 
     def latest_synchronized(self):
         return (
@@ -150,8 +146,7 @@ class CommunityRepository:
     @staticmethod
     def get_communities_by_member(current_user_id):
         return (
-            Community.query
-            .join(community_members, community_members.c.community_id == Community.id)
+            Community.query.join(community_members, community_members.c.community_id == Community.id)
             .filter(community_members.c.user_id == current_user_id)
             .all()
         )
@@ -159,10 +154,10 @@ class CommunityRepository:
     @staticmethod
     def get_communities_by_owner(current_user_id):
         return (
-            Community.query
-            .join(community_owners, community_owners.c.community_id == Community.id)
+            Community.query.join(community_owners, community_owners.c.community_id == Community.id)
             .filter(community_owners.c.user_id == current_user_id)
-            .all())
+            .all()
+        )
 
     @staticmethod
     def search_by_name(query):
@@ -177,11 +172,7 @@ class CommunityRepository:
     def create_community(name, current_user) -> Community:
         owners_list = [current_user]
         new_community = Community(
-            name=name,
-            created_at=datetime.now(timezone.utc),
-            owners=owners_list,
-            members=owners_list,
-            requests=[]
+            name=name, created_at=datetime.now(timezone.utc), owners=owners_list, members=owners_list, requests=[]
         )
 
         db.session.add(new_community)
@@ -203,12 +194,7 @@ class CommunityRepository:
     def request_community(community_id, current_user):
         community = Community.query.get(community_id)
         if community:
-            db.session.execute(
-                community_request.insert().values(
-                    community_id=community_id,
-                    user_id=current_user.id
-                )
-            )
+            db.session.execute(community_request.insert().values(community_id=community_id, user_id=current_user.id))
         db.session.commit()
 
     @staticmethod
@@ -221,6 +207,12 @@ class CommunityRepository:
                 db.session.commit()
                 return True
         return False
+
+    @staticmethod
+    def remove_member(community, user):
+        if user in community.members:
+            community.members.remove(user)
+            db.session.commit()
 
     @staticmethod
     def remove_request(community_id, user_id):

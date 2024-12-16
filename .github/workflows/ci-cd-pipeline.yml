@@ -40,6 +40,7 @@ jobs:
     uses: ./.github/workflows/render.yml
     secrets: 
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      DATABASE_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
 
   docker-publish:
     needs: validate-main-branch

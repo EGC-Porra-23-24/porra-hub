@@ -784,6 +784,16 @@ def view_community(community_id):
         is_member=CommunityService.is_member,
         is_request=CommunityService.is_request,
     )
+    return render_template('community/view_community.html',
+                           community=community,
+                           current_user=current_user,
+                           owners=owners,
+                           members=members,
+                           requests=requests,
+                           datasets=datasets,
+                           is_owner=CommunityService.is_owner,
+                           is_member=CommunityService.is_member,
+                           is_request=CommunityService.is_request)
 
 
 @community_bp.route("/community/create", methods=["GET"])
@@ -853,7 +863,25 @@ def request_community(community_id):
     return redirect(url_for("community.view_community", community_id=community_id))
 
 
-@community_bp.route("/community/<int:community_id>/requests/<int:user_id>/<string:action>", methods=["POST"])
+@community_bp.route('/community/<int:community_id>/leave', methods=['POST'])
+@login_required
+def leave_community(community_id):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community:
+        return "Community not found", 404
+
+    if not CommunityService.is_member(community, current_user):
+        return "Forbidden", 403
+
+    if CommunityService.is_owner(community, current_user):
+        return "Owners cannot leave the community.", 403
+
+    CommunityService.remove_member(community_id, current_user)
+    flash("You have left the community successfully.", "success")
+    return redirect(url_for('community.list_communities'))
+
+
+@community_bp.route('/community/<int:community_id>/requests/<int:user_id>/<string:action>', methods=['POST'])
 @login_required
 def handle_request(community_id, user_id, action):
     community = CommunityService.get_community_by_id(community_id)

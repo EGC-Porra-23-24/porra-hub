@@ -5,6 +5,8 @@ on:
     secrets:
       RENDER_DEPLOY_HOOK_URL:
         required: true
+      DATABASE_PASSWORD:
+        required: true
 
 
 jobs:
@@ -15,8 +17,25 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Seed the database
+        env:
+          FLASK_ENV: production
+          MARIADB_HOSTNAME: 8l59d.h.filess.io
+          MARIADB_PORT: 3305
+          MARIADB_DATABASE: uvlhubdatabase_cornstock
+          MARIADB_USER: uvlhubdatabase_cornstock
+          MARIADB_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ./
+          rosemary db:reset -y
+          rosemary db:migrate
+          rosemary db:seed
+
       - name: Deploy to Render
         env:
           deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
           curl "$deploy_url"
+
