@@ -145,9 +145,7 @@ def test_upload_dataset_zip():
         driver.find_element(By.ID, "email").send_keys("user1@example.com")
         driver.find_element(By.ID, "password").send_keys("1234")
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "submit"))
-        ).click()
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "submit"))).click()
         wait_for_page_to_load(driver)
 
         # Navigate to "Upload from ZIP"
@@ -217,16 +215,14 @@ def test_download_all_dataset_logged_in():
     try:
 
         host = get_host_for_selenium_testing()
-                # Open the login page
+        # Open the login page
         driver.get(f"{host}/login")
         wait_for_page_to_load(driver)
 
         driver.find_element(By.ID, "email").send_keys("user1@example.com")
         driver.find_element(By.ID, "password").send_keys("1234")
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "submit"))
-        ).click()
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "submit"))).click()
         wait_for_page_to_load(driver)
 
         driver.get(f"{host}/")
@@ -243,6 +239,7 @@ def test_download_all_dataset_logged_in():
 
     finally:
         close_driver(driver)
+
 
 # Call the test functions
 test_upload_dataset()
