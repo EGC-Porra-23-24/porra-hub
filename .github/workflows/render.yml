@@ -5,6 +5,8 @@ on:
     secrets:
       RENDER_DEPLOY_HOOK_URL:
         required: true
+      DATABASE_PASSWORD:
+        required: true
 
 
 jobs:
