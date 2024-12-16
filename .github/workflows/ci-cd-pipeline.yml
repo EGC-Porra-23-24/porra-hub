@@ -25,6 +25,8 @@ jobs:
     uses: ./.github/workflows/codacy.yml
     secrets:
       CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }} 
+      VERIFICATION_EMAIL: ${{ secrets.VERIFICATION_EMAIL }}
+      VERIFICATION_EMAIL_PASSWORD: ${{ secrets.VERIFICATION_EMAIL_PASSWORD }}
 
 
   validate-main-branch:

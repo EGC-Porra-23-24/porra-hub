@@ -7,6 +7,10 @@ on:
         required: true
       DATABASE_PASSWORD:
         required: true
+      VERIFICATION_EMAIL:
+        required: true
+      VERIFICATION_EMAIL_PASSWORD:
+        required: true
 
 
 jobs:
@@ -36,6 +40,8 @@ jobs:
       - name: Deploy to Render
         env:
           deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          VERIFICATION_EMAIL: ${{ secrets.VERIFICATION_EMAIL }}
+          VERIFICATION_EMAIL_PASSWORD: ${{ secrets.VERIFICATION_EMAIL_PASSWORD }}
         run: |
           curl "$deploy_url"
 
