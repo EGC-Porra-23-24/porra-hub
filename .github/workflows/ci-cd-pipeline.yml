@@ -26,7 +26,6 @@ jobs:
     secrets:
       CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }} 
 
-
   validate-main-branch:
     name: Validate Main Branch
     needs: tests
