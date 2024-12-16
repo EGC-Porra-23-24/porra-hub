@@ -19,7 +19,6 @@ from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWr
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 
 
-
 @pytest.fixture(scope="module")
 def test_client(test_client):
     """
@@ -36,7 +35,7 @@ def test_client(test_client):
 # Fixture de pytest
 @pytest.fixture(scope="function")
 def client():
-    app = create_app('testing')  # Usamos el entorno de testing
+    app = create_app("testing")  # Usamos el entorno de testing
     with app.test_client() as client:
         with app.app_context():
             # Configuración de la base de datos en modo de prueba
@@ -49,8 +48,12 @@ def client():
             db.session.commit()
 
             # Crear metadata para el dataset (dataset_33)
-            dsmetadata = DSMetaData(id=33, title="Sample Dataset 33", description="Description for dataset 33",
-                                    publication_type=PublicationType.DATA_MANAGEMENT_PLAN.name)
+            dsmetadata = DSMetaData(
+                id=33,
+                title="Sample Dataset 33",
+                description="Description for dataset 33",
+                publication_type=PublicationType.DATA_MANAGEMENT_PLAN.name,
+            )
             db.session.add(dsmetadata)
             db.session.commit()
 
@@ -65,8 +68,9 @@ def client():
             db.session.commit()
 
             # Crear un archivo Hubfile asociado al feature_model (sin 'path')
-            hubfile = Hubfile(id=1, feature_model_id=feature_model.id, name="file33.uvl",
-                              checksum="dummy_checksum", size=1234)
+            hubfile = Hubfile(
+                id=1, feature_model_id=feature_model.id, name="file33.uvl", checksum="dummy_checksum", size=1234
+            )
             db.session.add(hubfile)
             db.session.commit()
 
@@ -78,7 +82,7 @@ def client():
 
 # Test para la descarga de todos los datasets (esperando un archivo ZIP)
 def test_download_all_dataset(client):
-    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+    with mock.patch("flask_login.utils._get_user") as mock_get_user:
         # Mockear al usuario correcto (user_33)
         mock_user = User(id=33, email="user33@example.com", password="1234", created_at=datetime(2022, 3, 13))
         mock_get_user.return_value = mock_user
@@ -92,35 +96,35 @@ def test_download_all_dataset(client):
         hubfile_mock = mock.Mock(id=1, get_path=lambda: f"uploads/user_{mock_user.id}/dataset_{33}/file33.uvl")
 
         # Mockear la llamada a HubfileService.get_or_404
-        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', return_value=hubfile_mock):
+        with mock.patch("app.modules.hubfile.services.HubfileService.get_or_404", return_value=hubfile_mock):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 # Aquí guardamos el archivo en la ruta esperada por la aplicación
-                file_path = os.path.join("uploads/", f'user_{mock_user.id}', f'dataset_{33}', 'file33.uvl')
+                file_path = os.path.join("uploads/", f"user_{mock_user.id}", f"dataset_{33}", "file33.uvl")
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
                 # Crear un archivo UVL válido para que Flamapy pueda procesarlo
-                with open(file_path, 'w') as f:
-                    f.write('features\n')
-                    f.write('    Chat\n')
-                    f.write('        mandatory\n')
-                    f.write('            Connection\n')
-                    f.write('                alternative\n')
+                with open(file_path, "w") as f:
+                    f.write("features\n")
+                    f.write("    Chat\n")
+                    f.write("        mandatory\n")
+                    f.write("            Connection\n")
+                    f.write("                alternative\n")
                     f.write('                    "Peer 2 Peer"\n')
-                    f.write('                    Server\n')
-                    f.write('            Messages\n')
-                    f.write('                or\n')
-                    f.write('                    Text\n')
-                    f.write('                    Video\n')
-                    f.write('                    Audio\n')
-                    f.write('        optional\n')
+                    f.write("                    Server\n")
+                    f.write("            Messages\n")
+                    f.write("                or\n")
+                    f.write("                    Text\n")
+                    f.write("                    Video\n")
+                    f.write("                    Audio\n")
+                    f.write("        optional\n")
                     f.write('            "Data Storage"\n')
                     f.write('            "Media Player"\n')
-                    f.write('\n')
-                    f.write('constraints\n')
+                    f.write("\n")
+                    f.write("constraints\n")
                     f.write('    Server => "Data Storage"\n')
                     f.write('    Video | Audio => "Media Player"\n')
 
-                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+                zip_path = os.path.join(tmpdirname, "all_datasets.zip")
 
                 # Aquí comenzamos a crear el archivo ZIP
                 with ZipFile(zip_path, "w") as zipf:
@@ -136,11 +140,11 @@ def test_download_all_dataset(client):
                     assert os.path.getsize(zip_path) > 0
 
                     # Aquí va tu lógica de comprobación del contenido del ZIP
-                    with ZipFile(zip_path, 'r') as zipf:
+                    with ZipFile(zip_path, "r") as zipf:
                         # Verifica el contenido
                         zipf.testzip()  # Esto puede levantar una excepción si el ZIP está dañado
 
-                    response = client.get('/dataset/download/all')
+                    response = client.get("/dataset/download/all")
                     assert response.status_code == 200
 
                 finally:
@@ -152,7 +156,7 @@ def test_download_all_dataset(client):
 
 # Test para la descarga de todos los datasets
 def test_download_all_dataset_splx(client):
-    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+    with mock.patch("flask_login.utils._get_user") as mock_get_user:
         # Mockear al usuario correcto (user_33)
         mock_user = User(id=33, email="user33@example.com", password="1234", created_at=datetime(2022, 3, 13))
         mock_get_user.return_value = mock_user
@@ -166,36 +170,36 @@ def test_download_all_dataset_splx(client):
         hubfile_mock = mock.Mock(id=1, get_path=lambda: f"uploads/user_{mock_user.id}/dataset_{33}/file33.uvl")
 
         # Mockear la llamada a HubfileService.get_or_404
-        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', return_value=hubfile_mock):
+        with mock.patch("app.modules.hubfile.services.HubfileService.get_or_404", return_value=hubfile_mock):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 # Aquí guardamos el archivo en la ruta esperada por la aplicación
-                file_path = os.path.join("uploads/", f'user_{mock_user.id}', f'dataset_{33}', 'file33.uvl')
+                file_path = os.path.join("uploads/", f"user_{mock_user.id}", f"dataset_{33}", "file33.uvl")
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
                 # Crear un archivo UVL válido para que Flamapy pueda procesarlo
-                with open(file_path, 'w') as f:
-                    f.write('features\n')
-                    f.write('    Chat\n')
-                    f.write('        mandatory\n')
-                    f.write('            Connection\n')
-                    f.write('                alternative\n')
+                with open(file_path, "w") as f:
+                    f.write("features\n")
+                    f.write("    Chat\n")
+                    f.write("        mandatory\n")
+                    f.write("            Connection\n")
+                    f.write("                alternative\n")
                     f.write('                    "Peer 2 Peer"\n')
-                    f.write('                    Server\n')
-                    f.write('            Messages\n')
-                    f.write('                or\n')
-                    f.write('                    Text\n')
-                    f.write('                    Video\n')
-                    f.write('                    Audio\n')
-                    f.write('        optional\n')
+                    f.write("                    Server\n")
+                    f.write("            Messages\n")
+                    f.write("                or\n")
+                    f.write("                    Text\n")
+                    f.write("                    Video\n")
+                    f.write("                    Audio\n")
+                    f.write("        optional\n")
                     f.write('            "Data Storage"\n')
                     f.write('            "Media Player"\n')
-                    f.write('\n')
-                    f.write('constraints\n')
+                    f.write("\n")
+                    f.write("constraints\n")
                     f.write('    Server => "Data Storage"\n')
                     f.write('    Video | Audio => "Media Player"\n')
 
                 # Crear el archivo ZIP de salida
-                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+                zip_path = os.path.join(tmpdirname, "all_datasets.zip")
 
                 # Crear un archivo ZIP para simular la descarga
                 with ZipFile(zip_path, "w") as zipf:
@@ -205,7 +209,7 @@ def test_download_all_dataset_splx(client):
                         for file in dataset.files():
                             content = ""
                             # Convertir el archivo UVL a SPLX directamente aquí
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
+                            temp_file = tempfile.NamedTemporaryFile(suffix=".splx", delete=False)
                             fm = UVLReader(hubfile_mock.get_path()).transform()
                             SPLOTWriter(temp_file.name, fm).transform()
                             with open(temp_file.name, "r") as new_format_file:
@@ -213,7 +217,7 @@ def test_download_all_dataset_splx(client):
 
                             # Nombre del archivo SPLX dentro del ZIP
                             file_name_in_zip = f"{hubfile_mock.id}_splot.txt"
-                            
+
                             # Agregar el archivo SPLX al archivo ZIP
                             zipf.writestr(os.path.join(dataset_folder, file_name_in_zip), content)
 
@@ -227,14 +231,14 @@ def test_download_all_dataset_splx(client):
                     assert os.path.getsize(zip_path) > 0
 
                     # Abrir el ZIP y comprobar que contiene el archivo con el sufijo '_splot.txt'
-                    with ZipFile(zip_path, 'r') as zipf:
+                    with ZipFile(zip_path, "r") as zipf:
                         # Obtener los nombres de los archivos dentro del ZIP
                         zip_file_names = zipf.namelist()
-                        
+
                         # Verificar que al menos un archivo tenga el sufijo '_splot.txt'
-                        assert any(name.endswith('_splot.txt') for name in zip_file_names)
+                        assert any(name.endswith("_splot.txt") for name in zip_file_names)
                     # Simulamos una llamada a la descarga del archivo ZIP
-                    response = client.get('/dataset/download/all')
+                    response = client.get("/dataset/download/all")
                     assert response.status_code == 200
 
                 finally:
@@ -243,9 +247,10 @@ def test_download_all_dataset_splx(client):
                         os.remove(zip_path)
                         print(f"Deleted ZIP file at: {zip_path}")
 
+
 # Test para la descarga de todos los datasets
 def test_download_all_dataset_glencoe(client):
-    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+    with mock.patch("flask_login.utils._get_user") as mock_get_user:
         # Mockear al usuario correcto (user_33)
         mock_user = User(id=33, email="user33@example.com", password="1234", created_at=datetime(2022, 3, 13))
         mock_get_user.return_value = mock_user
@@ -259,36 +264,36 @@ def test_download_all_dataset_glencoe(client):
         hubfile_mock = mock.Mock(id=1, get_path=lambda: f"uploads/user_{mock_user.id}/dataset_{33}/file33.uvl")
 
         # Mockear la llamada a HubfileService.get_or_404
-        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', return_value=hubfile_mock):
+        with mock.patch("app.modules.hubfile.services.HubfileService.get_or_404", return_value=hubfile_mock):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 # Aquí guardamos el archivo en la ruta esperada por la aplicación
-                file_path = os.path.join("uploads/", f'user_{mock_user.id}', f'dataset_{33}', 'file33.uvl')
+                file_path = os.path.join("uploads/", f"user_{mock_user.id}", f"dataset_{33}", "file33.uvl")
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
                 # Crear un archivo UVL válido para que Flamapy pueda procesarlo
-                with open(file_path, 'w') as f:
-                    f.write('features\n')
-                    f.write('    Chat\n')
-                    f.write('        mandatory\n')
-                    f.write('            Connection\n')
-                    f.write('                alternative\n')
+                with open(file_path, "w") as f:
+                    f.write("features\n")
+                    f.write("    Chat\n")
+                    f.write("        mandatory\n")
+                    f.write("            Connection\n")
+                    f.write("                alternative\n")
                     f.write('                    "Peer 2 Peer"\n')
-                    f.write('                    Server\n')
-                    f.write('            Messages\n')
-                    f.write('                or\n')
-                    f.write('                    Text\n')
-                    f.write('                    Video\n')
-                    f.write('                    Audio\n')
-                    f.write('        optional\n')
+                    f.write("                    Server\n")
+                    f.write("            Messages\n")
+                    f.write("                or\n")
+                    f.write("                    Text\n")
+                    f.write("                    Video\n")
+                    f.write("                    Audio\n")
+                    f.write("        optional\n")
                     f.write('            "Data Storage"\n')
                     f.write('            "Media Player"\n')
-                    f.write('\n')
-                    f.write('constraints\n')
+                    f.write("\n")
+                    f.write("constraints\n")
                     f.write('    Server => "Data Storage"\n')
                     f.write('    Video | Audio => "Media Player"\n')
 
                 # Crear el archivo ZIP de salida
-                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+                zip_path = os.path.join(tmpdirname, "all_datasets.zip")
 
                 # Crear un archivo ZIP para simular la descarga
                 with ZipFile(zip_path, "w") as zipf:
@@ -297,7 +302,7 @@ def test_download_all_dataset_glencoe(client):
 
                         for file in dataset.files():
                             content = ""
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                            temp_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
                             fm = UVLReader(hubfile_mock.get_path()).transform()
                             GlencoeWriter(temp_file.name, fm).transform()
                             with open(temp_file.name, "r") as new_format_file:
@@ -305,7 +310,7 @@ def test_download_all_dataset_glencoe(client):
 
                             # Nombre del archivo dentro del ZIP
                             file_name_in_zip = f"{hubfile_mock.id}_glencoe.txt"
-                            
+
                             # Agregar el archivo al archivo ZIP
                             zipf.writestr(os.path.join(dataset_folder, file_name_in_zip), content)
 
@@ -319,14 +324,14 @@ def test_download_all_dataset_glencoe(client):
                     assert os.path.getsize(zip_path) > 0
 
                     # Abrir el ZIP y comprobar que contiene el archivo con el sufijo '_glencoe.txt'
-                    with ZipFile(zip_path, 'r') as zipf:
+                    with ZipFile(zip_path, "r") as zipf:
                         # Obtener los nombres de los archivos dentro del ZIP
                         zip_file_names = zipf.namelist()
-                        
+
                         # Verificar que al menos un archivo tenga el sufijo '_glencoe.txt'
-                        assert any(name.endswith('_glencoe.txt') for name in zip_file_names)
+                        assert any(name.endswith("_glencoe.txt") for name in zip_file_names)
                     # Simulamos una llamada a la descarga del archivo ZIP
-                    response = client.get('/dataset/download/all')
+                    response = client.get("/dataset/download/all")
                     assert response.status_code == 200
 
                 finally:
@@ -338,7 +343,7 @@ def test_download_all_dataset_glencoe(client):
 
 # Test para la descarga de todos los datasets
 def test_download_all_dataset_dimacs(client):
-    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+    with mock.patch("flask_login.utils._get_user") as mock_get_user:
         # Mockear al usuario correcto (user_33)
         mock_user = User(id=33, email="user33@example.com", password="1234", created_at=datetime(2022, 3, 13))
         mock_get_user.return_value = mock_user
@@ -352,36 +357,36 @@ def test_download_all_dataset_dimacs(client):
         hubfile_mock = mock.Mock(id=1, get_path=lambda: f"uploads/user_{mock_user.id}/dataset_{33}/file33.uvl")
 
         # Mockear la llamada a HubfileService.get_or_404
-        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', return_value=hubfile_mock):
+        with mock.patch("app.modules.hubfile.services.HubfileService.get_or_404", return_value=hubfile_mock):
             with tempfile.TemporaryDirectory() as tmpdirname:
                 # Aquí guardamos el archivo en la ruta esperada por la aplicación
-                file_path = os.path.join("uploads/", f'user_{mock_user.id}', f'dataset_{33}', 'file33.uvl')
+                file_path = os.path.join("uploads/", f"user_{mock_user.id}", f"dataset_{33}", "file33.uvl")
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
                 # Crear un archivo UVL válido para que Flamapy pueda procesarlo
-                with open(file_path, 'w') as f:
-                    f.write('features\n')
-                    f.write('    Chat\n')
-                    f.write('        mandatory\n')
-                    f.write('            Connection\n')
-                    f.write('                alternative\n')
+                with open(file_path, "w") as f:
+                    f.write("features\n")
+                    f.write("    Chat\n")
+                    f.write("        mandatory\n")
+                    f.write("            Connection\n")
+                    f.write("                alternative\n")
                     f.write('                    "Peer 2 Peer"\n')
-                    f.write('                    Server\n')
-                    f.write('            Messages\n')
-                    f.write('                or\n')
-                    f.write('                    Text\n')
-                    f.write('                    Video\n')
-                    f.write('                    Audio\n')
-                    f.write('        optional\n')
+                    f.write("                    Server\n")
+                    f.write("            Messages\n")
+                    f.write("                or\n")
+                    f.write("                    Text\n")
+                    f.write("                    Video\n")
+                    f.write("                    Audio\n")
+                    f.write("        optional\n")
                     f.write('            "Data Storage"\n')
                     f.write('            "Media Player"\n')
-                    f.write('\n')
-                    f.write('constraints\n')
+                    f.write("\n")
+                    f.write("constraints\n")
                     f.write('    Server => "Data Storage"\n')
                     f.write('    Video | Audio => "Media Player"\n')
 
                 # Crear el archivo ZIP de salida
-                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+                zip_path = os.path.join(tmpdirname, "all_datasets.zip")
 
                 # Crear un archivo ZIP para simular la descarga
                 with ZipFile(zip_path, "w") as zipf:
@@ -390,7 +395,7 @@ def test_download_all_dataset_dimacs(client):
 
                         for file in dataset.files():
                             content = ""
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
+                            temp_file = tempfile.NamedTemporaryFile(suffix=".cnf", delete=False)
                             fm = UVLReader(hubfile_mock.get_path()).transform()
                             sat = FmToPysat(fm).transform()
                             DimacsWriter(temp_file.name, sat).transform()
@@ -399,7 +404,7 @@ def test_download_all_dataset_dimacs(client):
 
                             # Nombre del archivo dentro del ZIP
                             file_name_in_zip = f"{hubfile_mock.id}_cnf.txt"
-                            
+
                             # Agregar el archivo al archivo ZIP
                             zipf.writestr(os.path.join(dataset_folder, file_name_in_zip), content)
 
@@ -413,14 +418,14 @@ def test_download_all_dataset_dimacs(client):
                     assert os.path.getsize(zip_path) > 0
 
                     # Abrir el ZIP y comprobar que contiene el archivo con el sufijo '_cnf.txt'
-                    with ZipFile(zip_path, 'r') as zipf:
+                    with ZipFile(zip_path, "r") as zipf:
                         # Obtener los nombres de los archivos dentro del ZIP
                         zip_file_names = zipf.namelist()
-                        
+
                         # Verificar que al menos un archivo tenga el sufijo '_cnf.txt'
-                        assert any(name.endswith('_cnf.txt') for name in zip_file_names)
+                        assert any(name.endswith("_cnf.txt") for name in zip_file_names)
                     # Simulamos una llamada a la descarga del archivo ZIP
-                    response = client.get('/dataset/download/all')
+                    response = client.get("/dataset/download/all")
                     assert response.status_code == 200
 
                 finally:
@@ -429,9 +434,10 @@ def test_download_all_dataset_dimacs(client):
                         os.remove(zip_path)
                         print(f"Deleted ZIP file at: {zip_path}")
 
+
 # Test para la descarga de todos los datasets (cuando los archivos no se encuentran)
 def test_download_all_dataset_files_not_found(client):
-    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+    with mock.patch("flask_login.utils._get_user") as mock_get_user:
         mock_user = User(id=5, email="user5@example.com", password="1234", created_at=datetime(2022, 3, 13))
         mock_get_user.return_value = mock_user
 
@@ -441,10 +447,10 @@ def test_download_all_dataset_files_not_found(client):
         ]
 
         # Simulamos un escenario donde el archivo no está presente
-        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', side_effect=FileNotFoundError):
+        with mock.patch("app.modules.hubfile.services.HubfileService.get_or_404", side_effect=FileNotFoundError):
             # No deberíamos poder crear archivos si no hay archivos disponibles
             with tempfile.TemporaryDirectory() as tmpdirname:
-                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+                zip_path = os.path.join(tmpdirname, "all_datasets.zip")
 
                 # No deberíamos poder crear archivos si no hay archivos disponibles
                 with ZipFile(zip_path, "w") as zipf:
@@ -453,25 +459,25 @@ def test_download_all_dataset_files_not_found(client):
                             try:
                                 file.name = str(file.name)
                                 file_path = os.path.join(tmpdirname, file.name)
-                                with open(file_path, 'w') as f:
-                                    f.write('Contenido simulado de archivo')
+                                with open(file_path, "w") as f:
+                                    f.write("Contenido simulado de archivo")
                                 zipf.write(file_path, os.path.basename(file_path))
                             except FileNotFoundError:
                                 pass
             try:
                 # Llamamos a la ruta para descargar todos los datasets
-                response = client.get('/dataset/download/all')
+                response = client.get("/dataset/download/all")
 
                 # Verificamos que el status de la respuesta es 404 (No encontrado)
                 assert response.status_code == 404
 
                 # Verificar que la respuesta sea un JSON
-                assert response.content_type == 'application/json'
+                assert response.content_type == "application/json"
 
                 # Verificar el contenido del JSON (mensaje de error esperado)
                 json_response = response.get_json()
-                assert 'error' in json_response
-                assert json_response['error'] == 'No se encontraron archivos disponibles para descargar'
+                assert "error" in json_response
+                assert json_response["error"] == "No se encontraron archivos disponibles para descargar"
             finally:
                 if os.path.exists(zip_path):
                     os.remove(zip_path)
@@ -479,7 +485,7 @@ def test_download_all_dataset_files_not_found(client):
 
 # Test para la descarga de todos los datasets (cuando los archivos no se encuentran)
 def test_download_all_dataset_empty(client):
-    with mock.patch('flask_login.utils._get_user') as mock_get_user:
+    with mock.patch("flask_login.utils._get_user") as mock_get_user:
         mock_user = User(id=5, email="user5@example.com", password="1234", created_at=datetime(2022, 3, 13))
         mock_get_user.return_value = mock_user
 
@@ -489,10 +495,10 @@ def test_download_all_dataset_empty(client):
         ]
 
         # Simulamos un escenario donde el archivo no está presente
-        with mock.patch('app.modules.hubfile.services.HubfileService.get_or_404', side_effect=FileNotFoundError):
+        with mock.patch("app.modules.hubfile.services.HubfileService.get_or_404", side_effect=FileNotFoundError):
             # No deberíamos poder crear archivos si no hay archivos disponibles
             with tempfile.TemporaryDirectory() as tmpdirname:
-                zip_path = os.path.join(tmpdirname, 'all_datasets.zip')
+                zip_path = os.path.join(tmpdirname, "all_datasets.zip")
 
                 # No deberíamos poder crear archivos si no hay archivos disponibles
                 with ZipFile(zip_path, "w") as zipf:
@@ -501,25 +507,25 @@ def test_download_all_dataset_empty(client):
                             try:
                                 file.name = str(file.name)
                                 file_path = os.path.join(tmpdirname, file.name)
-                                with open(file_path, 'w') as f:
-                                    f.write('Contenido simulado de archivo')
+                                with open(file_path, "w") as f:
+                                    f.write("Contenido simulado de archivo")
                                 zipf.write(file_path, os.path.basename(file_path))
                             except FileNotFoundError:
                                 pass
             try:
                 # Llamamos a la ruta para descargar todos los datasets
-                response = client.get('/dataset/download/all')
+                response = client.get("/dataset/download/all")
 
                 # Verificamos que el status de la respuesta es 404 (No encontrado)
                 assert response.status_code == 404
 
                 # Verificar que la respuesta sea un JSON
-                assert response.content_type == 'application/json'
+                assert response.content_type == "application/json"
 
                 # Verificar el contenido del JSON (mensaje de error esperado)
                 json_response = response.get_json()
-                assert 'error' in json_response
-                assert json_response['error'] == 'No se encontraron archivos disponibles para descargar'
+                assert "error" in json_response
+                assert json_response["error"] == "No se encontraron archivos disponibles para descargar"
             finally:
                 if os.path.exists(zip_path):
                     os.remove(zip_path)
@@ -535,16 +541,16 @@ def login(test_client):
     )
     assert response.status_code == 200 and response.request.path == "/"
 
-    cookies = response.headers.getlist('Set-Cookie')
+    cookies = response.headers.getlist("Set-Cookie")
 
     remember_token = None
     session = None
 
     for cookie in cookies:
-        if 'remember_token' in cookie:
-            remember_token = cookie.split(';')[0].split('=')[1]
-        elif 'session' in cookie:
-            session = cookie.split(';')[0].split('=')[1]
+        if "remember_token" in cookie:
+            remember_token = cookie.split(";")[0].split("=")[1]
+        elif "session" in cookie:
+            session = cookie.split(";")[0].split("=")[1]
 
     return remember_token, session
 
@@ -556,20 +562,17 @@ def test_upload_valid_zip(test_client, login):
     remember_token, session = login
 
     zip_buffer = BytesIO()
-    with ZipFile(zip_buffer, 'w') as zip_file:
-        zip_file.writestr('testfile.uvl', 'contenido del archivo UVL')
+    with ZipFile(zip_buffer, "w") as zip_file:
+        zip_file.writestr("testfile.uvl", "contenido del archivo UVL")
 
     zip_buffer.seek(0)
-    data = {
-        'file': (zip_buffer, 'test.zip')
-    }
+    data = {"file": (zip_buffer, "test.zip")}
 
-    headers = {
-        'Cookie': f'remember_token={remember_token}; session={session}'
-    }
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 200
 
@@ -581,18 +584,17 @@ def test_upload_zip_without_uvl(test_client, login):
     remember_token, session = login
 
     zip_buffer = BytesIO()
-    with ZipFile(zip_buffer, 'w') as zip_file:
-        zip_file.writestr('testfile.txt', 'contenido del archivo de texto')
+    with ZipFile(zip_buffer, "w") as zip_file:
+        zip_file.writestr("testfile.txt", "contenido del archivo de texto")
 
     zip_buffer.seek(0)
-    data = {
-        'file': (zip_buffer, 'test.zip')
-    }
+    data = {"file": (zip_buffer, "test.zip")}
 
-    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 400
 
@@ -603,14 +605,13 @@ def test_upload_invalid_zip(test_client, login):
     """
     remember_token, session = login
 
-    data = {
-        'file': (BytesIO(b"Not a zip file"), 'invalid.zip')
-    }
+    data = {"file": (BytesIO(b"Not a zip file"), "invalid.zip")}
 
-    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 400
 
@@ -623,10 +624,11 @@ def test_upload_no_file(test_client, login):
 
     data = {}
 
-    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 400
 
@@ -634,12 +636,15 @@ def test_upload_no_file(test_client, login):
 @pytest.fixture()
 def dataset_service():
     dataset_service = DataSetService()
-    with patch.object(dataset_service.dsmetadata_repository, 'create', return_value=DSMetaData(id=1)), \
-         patch.object(dataset_service.author_repository, 'create', return_value=Author(id=1)), \
-         patch.object(dataset_service.repository, 'create', return_value=DataSet(id=1)), \
-         patch.object(dataset_service.fmmetadata_repository, 'create', return_value=FMMetaData(id=1)), \
-         patch.object(dataset_service.feature_model_repository, 'create', return_value=FeatureModel(id=1)), \
-         patch.object(dataset_service.hubfilerepository, 'create', return_value=Hubfile(id=1)):
+    with patch.object(dataset_service.dsmetadata_repository, "create", return_value=DSMetaData(id=1)), patch.object(
+        dataset_service.author_repository, "create", return_value=Author(id=1)
+    ), patch.object(dataset_service.repository, "create", return_value=DataSet(id=1)), patch.object(
+        dataset_service.fmmetadata_repository, "create", return_value=FMMetaData(id=1)
+    ), patch.object(
+        dataset_service.feature_model_repository, "create", return_value=FeatureModel(id=1)
+    ), patch.object(
+        dataset_service.hubfilerepository, "create", return_value=Hubfile(id=1)
+    ):
 
         yield dataset_service
 
@@ -647,7 +652,7 @@ def dataset_service():
 @pytest.fixture()
 def current_user(dataset_service):
     profile = UserProfile(name="Jane", surname="Doe")
-    current_user = User(email='test@example.com', password='test1234', profile=profile)
+    current_user = User(email="test@example.com", password="test1234", profile=profile)
     yield current_user
 
 
@@ -655,43 +660,43 @@ def test_dsmetrics_with_whitespaces(dataset_service, current_user, test_app):
 
     with test_app.app_context():
         form = DataSetForm()
-        form.feature_models[0].uvl_filename.data = 'file_that_uses_whitespaces.uvl'
+        form.feature_models[0].uvl_filename.data = "file_that_uses_whitespaces.uvl"
 
-    with patch.object(current_user, 'temp_folder', return_value='app/modules/dataset/uvl_examples'), \
-         patch.object(dataset_service.dsmetrics_repository, 'create') as mock_create_dsmetrics:
+    with patch.object(current_user, "temp_folder", return_value="app/modules/dataset/uvl_examples"), patch.object(
+        dataset_service.dsmetrics_repository, "create"
+    ) as mock_create_dsmetrics:
         mock_create_dsmetrics.return_value = DSMetrics(id=1)
 
         dataset_service.create_from_form(form=form, current_user=current_user)
-        mock_create_dsmetrics.assert_called_once_with(number_of_models=1,
-                                                      number_of_features=10)
+        mock_create_dsmetrics.assert_called_once_with(number_of_models=1, number_of_features=10)
 
 
 def test_dsmetrics_with_tabs(dataset_service, current_user, test_app):
 
     with test_app.app_context():
         form = DataSetForm()
-        form.feature_models[0].uvl_filename.data = 'file_that_uses_tabs.uvl'
+        form.feature_models[0].uvl_filename.data = "file_that_uses_tabs.uvl"
 
-    with patch.object(current_user, 'temp_folder', return_value='app/modules/dataset/uvl_examples'), \
-         patch.object(dataset_service.dsmetrics_repository, 'create') as mock_create_dsmetrics:
+    with patch.object(current_user, "temp_folder", return_value="app/modules/dataset/uvl_examples"), patch.object(
+        dataset_service.dsmetrics_repository, "create"
+    ) as mock_create_dsmetrics:
         mock_create_dsmetrics.return_value = DSMetrics(id=1)
 
         dataset_service.create_from_form(form=form, current_user=current_user)
-        mock_create_dsmetrics.assert_called_once_with(number_of_models=1,
-                                                      number_of_features=24)
+        mock_create_dsmetrics.assert_called_once_with(number_of_models=1, number_of_features=24)
 
 
 def test_dsmetrics_both(dataset_service, current_user, test_app):
 
     with test_app.app_context():
         form = DataSetForm()
-        form.feature_models[0].uvl_filename.data = 'file_that_uses_whitespaces.uvl'
-        form.feature_models.append_entry(data={'uvl_filename': 'file_that_uses_tabs.uvl'})
+        form.feature_models[0].uvl_filename.data = "file_that_uses_whitespaces.uvl"
+        form.feature_models.append_entry(data={"uvl_filename": "file_that_uses_tabs.uvl"})
 
-    with patch.object(current_user, 'temp_folder', return_value='app/modules/dataset/uvl_examples'), \
-         patch.object(dataset_service.dsmetrics_repository, 'create') as mock_create_dsmetrics:
+    with patch.object(current_user, "temp_folder", return_value="app/modules/dataset/uvl_examples"), patch.object(
+        dataset_service.dsmetrics_repository, "create"
+    ) as mock_create_dsmetrics:
         mock_create_dsmetrics.return_value = DSMetrics(id=1)
 
         dataset_service.create_from_form(form=form, current_user=current_user)
-        mock_create_dsmetrics.assert_called_once_with(number_of_models=2,
-                                                      number_of_features=34)
+        mock_create_dsmetrics.assert_called_once_with(number_of_models=2, number_of_features=34)
