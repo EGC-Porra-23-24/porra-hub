@@ -1197,7 +1197,7 @@ def test_dsmetrics_both(dataset_service, current_user, test_app):
         dataset_service.create_from_form(form=form, current_user=current_user)
         mock_create_dsmetrics.assert_called_once_with(number_of_models=2, number_of_features=34)
 
-        
+
 # Caso: URL válida de GitHub con archivo ZIP
 def test_upload_github_valid_zip(test_client, login):
     remember_token, session = login  # Obtenemos el token de autenticación
