@@ -38,23 +38,23 @@ def login(test_client):
     )
     assert response.status_code == 200 and response.request.path == "/"
 
-    cookies = response.headers.getlist('Set-Cookie')
+    cookies = response.headers.getlist("Set-Cookie")
 
     remember_token = None
     session = None
 
     for cookie in cookies:
-        if 'remember_token' in cookie:
-            remember_token = cookie.split(';')[0].split('=')[1]
-        elif 'session' in cookie:
-            session = cookie.split(';')[0].split('=')[1]
+        if "remember_token" in cookie:
+            remember_token = cookie.split(";")[0].split("=")[1]
+        elif "session" in cookie:
+            session = cookie.split(";")[0].split("=")[1]
 
     return remember_token, session
 
 
 @pytest.fixture
 def app():
-    app = create_app('testing')
+    app = create_app("testing")
     with app.app_context():
         db.create_all()
         yield app
@@ -69,7 +69,7 @@ def client(app):
 
 @pytest.fixture
 def setup_data(app):
-    """ Create initial data for tests """
+    """Create initial data for tests"""
 
     # Crear usuarios
     user1 = User(id=111, email="owner1@example.com", password="password123")
@@ -82,21 +82,21 @@ def setup_data(app):
         name="Owner 1",
         surname="Surname 1",
         orcid="0000-0000-0000-0001",
-        affiliation="University of Example"
+        affiliation="University of Example",
     )
     profile2 = UserProfile(
         user_id=user2.id,
         name="Member 1",
         surname="Surname 2",
         orcid="0000-0000-0000-0002",
-        affiliation="Institute of Example"
+        affiliation="Institute of Example",
     )
     profile3 = UserProfile(
         user_id=user3.id,
         name="Requester 1",
         surname="Surname 3",
         orcid="0000-0000-0000-0003",
-        affiliation="Research Center Example"
+        affiliation="Research Center Example",
     )
 
     # Crear comunidades
@@ -119,12 +119,15 @@ def setup_data(app):
 @pytest.fixture()
 def dataset_service():
     dataset_service = DataSetService()
-    with patch.object(dataset_service.dsmetadata_repository, 'create', return_value=DSMetaData(id=1)), \
-         patch.object(dataset_service.author_repository, 'create', return_value=Author(id=1)), \
-         patch.object(dataset_service.repository, 'create', return_value=DataSet(id=1)), \
-         patch.object(dataset_service.fmmetadata_repository, 'create', return_value=FMMetaData(id=1)), \
-         patch.object(dataset_service.feature_model_repository, 'create', return_value=FeatureModel(id=1)), \
-         patch.object(dataset_service.hubfilerepository, 'create', return_value=Hubfile(id=1)):
+    with patch.object(dataset_service.dsmetadata_repository, "create", return_value=DSMetaData(id=1)), patch.object(
+        dataset_service.author_repository, "create", return_value=Author(id=1)
+    ), patch.object(dataset_service.repository, "create", return_value=DataSet(id=1)), patch.object(
+        dataset_service.fmmetadata_repository, "create", return_value=FMMetaData(id=1)
+    ), patch.object(
+        dataset_service.feature_model_repository, "create", return_value=FeatureModel(id=1)
+    ), patch.object(
+        dataset_service.hubfilerepository, "create", return_value=Hubfile(id=1)
+    ):
 
         yield dataset_service
 
@@ -132,29 +135,29 @@ def dataset_service():
 @pytest.fixture()
 def current_user(dataset_service):
     profile = UserProfile(name="Jane", surname="Doe")
-    current_user = User(email='test@example.com', password='test1234', profile=profile)
+    current_user = User(email="test@example.com", password="test1234", profile=profile)
     yield current_user
 
 
 def test_list_communities_authenticated(client, app, setup_data):
-    """ Test access to the communities view with an authenticated user """
+    """Test access to the communities view with an authenticated user"""
     with app.test_request_context():
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.get(url_for('community.list_communities'))
+        response = client.get(url_for("community.list_communities"))
 
         assert response.status_code == 200
         # Decode the bytes to string
-        response_data = response.data.decode('utf-8')
+        response_data = response.data.decode("utf-8")
 
         assert "Scientific Community" in response_data
         assert "Data Community" in response_data
 
 
 def test_list_communities_not_authenticated(client):
-    """ Test access without authentication """
-    response = client.get('/communities')
+    """Test access without authentication"""
+    response = client.get("/communities")
     assert response.status_code == 302  # Redirect to login
 
 
@@ -163,14 +166,11 @@ def test_search_communities_valid_query(client, app, setup_data):
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.get(
-            url_for('community.search_communities', query='Scientific'),
-            follow_redirects=True
-        )
+        response = client.get(url_for("community.search_communities", query="Scientific"), follow_redirects=True)
 
         assert response.status_code == 200
-        assert 'Search Results' in response.data.decode('utf-8')
-        assert 'Scientific Community' in response.data.decode('utf-8')
+        assert "Search Results" in response.data.decode("utf-8")
+        assert "Scientific Community" in response.data.decode("utf-8")
 
 
 def test_search_communities_empty_query(client, app, setup_data):
@@ -178,14 +178,11 @@ def test_search_communities_empty_query(client, app, setup_data):
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.get(
-            url_for('community.search_communities', query=''),
-            follow_redirects=True
-        )
+        response = client.get(url_for("community.search_communities", query=""), follow_redirects=True)
 
         assert response.status_code == 200
-        assert 'Search Results' in response.data.decode('utf-8')
-        assert 'No communities found' in response.data.decode('utf-8')
+        assert "Search Results" in response.data.decode("utf-8")
+        assert "No communities found" in response.data.decode("utf-8")
 
 
 def test_search_communities_no_results(client, app, setup_data):
@@ -193,14 +190,11 @@ def test_search_communities_no_results(client, app, setup_data):
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.get(
-            url_for('community.search_communities', query='Nonexistent'),
-            follow_redirects=True
-        )
+        response = client.get(url_for("community.search_communities", query="Nonexistent"), follow_redirects=True)
 
         assert response.status_code == 200
-        assert 'Search Results' in response.data.decode('utf-8')
-        assert 'No communities found' in response.data.decode('utf-8')
+        assert "Search Results" in response.data.decode("utf-8")
+        assert "No communities found" in response.data.decode("utf-8")
 
 
 def test_view_community_existing(client, app, setup_data):
@@ -210,14 +204,11 @@ def test_view_community_existing(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.get(
-            url_for('community.view_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.get(url_for("community.view_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 200
-        assert 'Scientific Community' in response.data.decode('utf-8')
-        assert user.profile.name in response.data.decode('utf-8')
+        assert "Scientific Community" in response.data.decode("utf-8")
+        assert user.profile.name in response.data.decode("utf-8")
 
 
 def test_view_community_nonexistent(client, app, setup_data):
@@ -225,13 +216,10 @@ def test_view_community_nonexistent(client, app, setup_data):
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.get(
-            url_for('community.view_community', community_id=9999),
-            follow_redirects=True
-        )
+        response = client.get(url_for("community.view_community", community_id=9999), follow_redirects=True)
 
         assert response.status_code == 404
-        assert 'Community not found' in response.data.decode('utf-8')
+        assert "Community not found" in response.data.decode("utf-8")
 
 
 def test_view_community_as_owner(client, app, setup_data):
@@ -241,14 +229,11 @@ def test_view_community_as_owner(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.get(
-            url_for('community.view_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.get(url_for("community.view_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 200
-        assert 'Scientific Community' in response.data.decode('utf-8')
-        assert 'Requests' in response.data.decode('utf-8')
+        assert "Scientific Community" in response.data.decode("utf-8")
+        assert "Requests" in response.data.decode("utf-8")
 
 
 def test_create_community_page_access(client, app, setup_data):
@@ -256,17 +241,17 @@ def test_create_community_page_access(client, app, setup_data):
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.get(url_for('community.create_community_page'))
+        response = client.get(url_for("community.create_community_page"))
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
+        response_data = response.data.decode("utf-8")
         assert "Create a New Community" in response_data
 
         logout_user()
 
 
 def test_create_community_page_unauthenticated_access(client, app, setup_data):
-    response = client.get('/community/create')
+    response = client.get("/community/create")
 
     assert response.status_code == 302
 
@@ -277,13 +262,11 @@ def test_create_community_success(client, app, setup_data):
         login_user(user)
 
         response = client.post(
-            url_for('community.create_community'),
-            data={'name': 'New Community test'},
-            follow_redirects=True
+            url_for("community.create_community"), data={"name": "New Community test"}, follow_redirects=True
         )
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
+        response_data = response.data.decode("utf-8")
         assert "New Community test" in response_data
 
 
@@ -292,16 +275,12 @@ def test_create_community_missing_name(client, app, setup_data):
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.post(
-            url_for('community.create_community'),
-            data={'name': ''},
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.create_community"), data={"name": ""}, follow_redirects=True)
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
+        response_data = response.data.decode("utf-8")
         print(response_data)
-        assert 'Create a New Community' in response_data
+        assert "Create a New Community" in response_data
 
 
 def test_edit_community_page_as_owner(client, app, setup_data):
@@ -311,13 +290,11 @@ def test_edit_community_page_as_owner(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.get(
-            url_for('community.edit_community_page', community_id=community.id)
-        )
+        response = client.get(url_for("community.edit_community_page", community_id=community.id))
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
-        assert 'Edit Community' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Edit Community" in response_data
         assert community.name in response_data
 
 
@@ -328,13 +305,11 @@ def test_edit_community_page_as_member(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.get(
-            url_for('community.edit_community_page', community_id=community.id)
-        )
+        response = client.get(url_for("community.edit_community_page", community_id=community.id))
 
         assert response.status_code == 403
-        response_data = response.data.decode('utf-8')
-        assert 'Forbidden' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Forbidden" in response_data
 
 
 def test_edit_community_page_nonexistent(client, app, setup_data):
@@ -342,22 +317,22 @@ def test_edit_community_page_nonexistent(client, app, setup_data):
         user = User.query.filter_by(email="owner1@example.com").first()
         login_user(user)
 
-        response = client.get(url_for('community.edit_community_page', community_id=9999))
+        response = client.get(url_for("community.edit_community_page", community_id=9999))
 
         assert response.status_code == 404
-        response_data = response.data.decode('utf-8')
-        assert 'Community not found' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Community not found" in response_data
 
 
 def test_edit_community_page_unauthenticated(client, app, setup_data):
     community = Community.query.filter_by(name="Scientific Community").first()
-    url = '/community/' + str(community.id) + '/edit'
+    url = "/community/" + str(community.id) + "/edit"
 
     response = client.get(url, follow_redirects=True)
 
     assert response.status_code == 200
-    response_data = response.data.decode('utf-8')
-    assert 'Login' in response_data
+    response_data = response.data.decode("utf-8")
+    assert "Login" in response_data
 
 
 def test_edit_community_post_as_owner(client, app, setup_data):
@@ -370,14 +345,14 @@ def test_edit_community_post_as_owner(client, app, setup_data):
         new_name = "Updated Community Name"
 
         response = client.post(
-            url_for('community.edit_community', community_id=community.id),
-            data={'name': new_name},
-            follow_redirects=True
+            url_for("community.edit_community", community_id=community.id),
+            data={"name": new_name},
+            follow_redirects=True,
         )
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
-        assert 'Updated Community Name' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Updated Community Name" in response_data
 
         updated_community = Community.query.filter_by(id=community.id).first()
         assert updated_community.name == new_name
@@ -391,14 +366,14 @@ def test_edit_community_post_as_member(client, app, setup_data):
         community = Community.query.filter_by(name="Scientific Community").first()
 
         response = client.post(
-            url_for('community.edit_community', community_id=community.id),
-            data={'name': 'New Name'},
-            follow_redirects=True
+            url_for("community.edit_community", community_id=community.id),
+            data={"name": "New Name"},
+            follow_redirects=True,
         )
 
         assert response.status_code == 403
-        response_data = response.data.decode('utf-8')
-        assert 'Forbidden' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Forbidden" in response_data
 
 
 def test_edit_community_post_nonexistent(client, app, setup_data):
@@ -407,14 +382,12 @@ def test_edit_community_post_nonexistent(client, app, setup_data):
         login_user(user)
 
         response = client.post(
-            url_for('community.edit_community', community_id=9999),
-            data={'name': 'New Name'},
-            follow_redirects=True
+            url_for("community.edit_community", community_id=9999), data={"name": "New Name"}, follow_redirects=True
         )
 
         assert response.status_code == 404
-        response_data = response.data.decode('utf-8')
-        assert 'Community not found' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Community not found" in response_data
 
 
 def test_delete_community_as_owner(client, app, setup_data):
@@ -424,14 +397,11 @@ def test_delete_community_as_owner(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.post(
-            url_for('community.delete_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.delete_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
-        assert 'My Communities' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "My Communities" in response_data
 
         deleted_community = Community.query.filter_by(id=community.id).first()
         assert deleted_community is None
@@ -444,14 +414,11 @@ def test_delete_community_as_member(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.post(
-            url_for('community.delete_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.delete_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 403
-        response_data = response.data.decode('utf-8')
-        assert 'Forbidden' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Forbidden" in response_data
 
 
 def test_delete_community_nonexistent(client, app, setup_data):
@@ -459,25 +426,22 @@ def test_delete_community_nonexistent(client, app, setup_data):
         user = User.query.filter_by(email="owner1@example.com").first()
         login_user(user)
 
-        response = client.post(
-            url_for('community.delete_community', community_id=9999),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.delete_community", community_id=9999), follow_redirects=True)
 
         assert response.status_code == 404
-        response_data = response.data.decode('utf-8')
-        assert 'Community not found' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Community not found" in response_data
 
 
 def test_delete_community_unauthenticated(client, app, setup_data):
     community = Community.query.filter_by(name="Scientific Community").first()
-    url = '/community/' + str(community.id) + '/delete'
+    url = "/community/" + str(community.id) + "/delete"
 
     response = client.post(url, follow_redirects=True)
 
     assert response.status_code == 200
-    response_data = response.data.decode('utf-8')
-    assert 'Login' in response_data
+    response_data = response.data.decode("utf-8")
+    assert "Login" in response_data
 
 
 def test_request_community_as_non_member(client, app, setup_data):
@@ -487,15 +451,12 @@ def test_request_community_as_non_member(client, app, setup_data):
 
         community = Community.query.filter_by(name="Data Community").first()
 
-        response = client.post(
-            url_for('community.request_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.request_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
+        response_data = response.data.decode("utf-8")
         print(response_data)
-        assert 'Community: Data Community' in response_data
+        assert "Community: Data Community" in response_data
         assert user in community.requests
 
 
@@ -506,15 +467,12 @@ def test_request_community_as_member(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.post(
-            url_for('community.request_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.request_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
+        response_data = response.data.decode("utf-8")
         print(response_data)
-        assert 'Community: Scientific Community' in response_data
+        assert "Community: Scientific Community" in response_data
 
 
 def test_request_community_as_requester(client, app, setup_data):
@@ -524,14 +482,11 @@ def test_request_community_as_requester(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.post(
-            url_for('community.request_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.request_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 200
-        response_data = response.data.decode('utf-8')
-        assert 'Community: Scientific Community' in response_data
+        response_data = response.data.decode("utf-8")
+        assert "Community: Scientific Community" in response_data
 
 
 def test_leave_community_as_member(client, app, setup_data):
@@ -541,10 +496,7 @@ def test_leave_community_as_member(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.post(
-            url_for('community.leave_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.leave_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 200
         assert not CommunityService.is_member(community, user)
@@ -557,10 +509,7 @@ def test_leave_community_as_owner(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.post(
-            url_for('community.leave_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.leave_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 403
         assert CommunityService.is_member(community, user)
@@ -572,13 +521,10 @@ def test_leave_community_nonexistent(client, app, setup_data):
         user = User.query.filter_by(email="member1@example.com").first()
         login_user(user)
 
-        response = client.post(
-            url_for('community.leave_community', community_id=9999),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.leave_community", community_id=9999), follow_redirects=True)
 
         assert response.status_code == 404
-        assert 'Community not found' in response.data.decode('utf-8')
+        assert "Community not found" in response.data.decode("utf-8")
 
 
 def test_leave_community_not_a_member(client, app, setup_data):
@@ -588,13 +534,10 @@ def test_leave_community_not_a_member(client, app, setup_data):
 
         community = Community.query.filter_by(name="Scientific Community").first()
 
-        response = client.post(
-            url_for('community.leave_community', community_id=community.id),
-            follow_redirects=True
-        )
+        response = client.post(url_for("community.leave_community", community_id=community.id), follow_redirects=True)
 
         assert response.status_code == 403
-        assert 'Forbidden' in response.data.decode('utf-8')
+        assert "Forbidden" in response.data.decode("utf-8")
         assert not CommunityService.is_member(community, user)
 
 
@@ -605,20 +548,17 @@ def test_upload_valid_zip(test_client, login):
     remember_token, session = login
 
     zip_buffer = BytesIO()
-    with ZipFile(zip_buffer, 'w') as zip_file:
-        zip_file.writestr('testfile.uvl', 'contenido del archivo UVL')
+    with ZipFile(zip_buffer, "w") as zip_file:
+        zip_file.writestr("testfile.uvl", "contenido del archivo UVL")
 
     zip_buffer.seek(0)
-    data = {
-        'file': (zip_buffer, 'test.zip')
-    }
+    data = {"file": (zip_buffer, "test.zip")}
 
-    headers = {
-        'Cookie': f'remember_token={remember_token}; session={session}'
-    }
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 200
 
@@ -630,18 +570,17 @@ def test_upload_zip_without_uvl(test_client, login):
     remember_token, session = login
 
     zip_buffer = BytesIO()
-    with ZipFile(zip_buffer, 'w') as zip_file:
-        zip_file.writestr('testfile.txt', 'contenido del archivo de texto')
+    with ZipFile(zip_buffer, "w") as zip_file:
+        zip_file.writestr("testfile.txt", "contenido del archivo de texto")
 
     zip_buffer.seek(0)
-    data = {
-        'file': (zip_buffer, 'test.zip')
-    }
+    data = {"file": (zip_buffer, "test.zip")}
 
-    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 400
 
@@ -652,14 +591,13 @@ def test_upload_invalid_zip(test_client, login):
     """
     remember_token, session = login
 
-    data = {
-        'file': (BytesIO(b"Not a zip file"), 'invalid.zip')
-    }
+    data = {"file": (BytesIO(b"Not a zip file"), "invalid.zip")}
 
-    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 400
 
@@ -672,10 +610,11 @@ def test_upload_no_file(test_client, login):
 
     data = {}
 
-    headers = {'Cookie': f'remember_token={remember_token}; session={session}'}
+    headers = {"Cookie": f"remember_token={remember_token}; session={session}"}
 
-    response = test_client.post('/dataset/file/upload/zip',
-                                data=data, headers=headers, content_type='multipart/form-data')
+    response = test_client.post(
+        "/dataset/file/upload/zip", data=data, headers=headers, content_type="multipart/form-data"
+    )
 
     assert response.status_code == 400
 
@@ -684,43 +623,43 @@ def test_dsmetrics_with_whitespaces(dataset_service, current_user, test_app):
 
     with test_app.app_context():
         form = DataSetForm()
-        form.feature_models[0].uvl_filename.data = 'file_that_uses_whitespaces.uvl'
+        form.feature_models[0].uvl_filename.data = "file_that_uses_whitespaces.uvl"
 
-    with patch.object(current_user, 'temp_folder', return_value='app/modules/dataset/uvl_examples'), \
-         patch.object(dataset_service.dsmetrics_repository, 'create') as mock_create_dsmetrics:
+    with patch.object(current_user, "temp_folder", return_value="app/modules/dataset/uvl_examples"), patch.object(
+        dataset_service.dsmetrics_repository, "create"
+    ) as mock_create_dsmetrics:
         mock_create_dsmetrics.return_value = DSMetrics(id=1)
 
         dataset_service.create_from_form(form=form, current_user=current_user)
-        mock_create_dsmetrics.assert_called_once_with(number_of_models=1,
-                                                      number_of_features=10)
+        mock_create_dsmetrics.assert_called_once_with(number_of_models=1, number_of_features=10)
 
 
 def test_dsmetrics_with_tabs(dataset_service, current_user, test_app):
 
     with test_app.app_context():
         form = DataSetForm()
-        form.feature_models[0].uvl_filename.data = 'file_that_uses_tabs.uvl'
+        form.feature_models[0].uvl_filename.data = "file_that_uses_tabs.uvl"
 
-    with patch.object(current_user, 'temp_folder', return_value='app/modules/dataset/uvl_examples'), \
-         patch.object(dataset_service.dsmetrics_repository, 'create') as mock_create_dsmetrics:
+    with patch.object(current_user, "temp_folder", return_value="app/modules/dataset/uvl_examples"), patch.object(
+        dataset_service.dsmetrics_repository, "create"
+    ) as mock_create_dsmetrics:
         mock_create_dsmetrics.return_value = DSMetrics(id=1)
 
         dataset_service.create_from_form(form=form, current_user=current_user)
-        mock_create_dsmetrics.assert_called_once_with(number_of_models=1,
-                                                      number_of_features=24)
+        mock_create_dsmetrics.assert_called_once_with(number_of_models=1, number_of_features=24)
 
 
 def test_dsmetrics_both(dataset_service, current_user, test_app):
 
     with test_app.app_context():
         form = DataSetForm()
-        form.feature_models[0].uvl_filename.data = 'file_that_uses_whitespaces.uvl'
-        form.feature_models.append_entry(data={'uvl_filename': 'file_that_uses_tabs.uvl'})
+        form.feature_models[0].uvl_filename.data = "file_that_uses_whitespaces.uvl"
+        form.feature_models.append_entry(data={"uvl_filename": "file_that_uses_tabs.uvl"})
 
-    with patch.object(current_user, 'temp_folder', return_value='app/modules/dataset/uvl_examples'), \
-         patch.object(dataset_service.dsmetrics_repository, 'create') as mock_create_dsmetrics:
+    with patch.object(current_user, "temp_folder", return_value="app/modules/dataset/uvl_examples"), patch.object(
+        dataset_service.dsmetrics_repository, "create"
+    ) as mock_create_dsmetrics:
         mock_create_dsmetrics.return_value = DSMetrics(id=1)
 
         dataset_service.create_from_form(form=form, current_user=current_user)
-        mock_create_dsmetrics.assert_called_once_with(number_of_models=2,
-                                                      number_of_features=34)
+        mock_create_dsmetrics.assert_called_once_with(number_of_models=2, number_of_features=34)
