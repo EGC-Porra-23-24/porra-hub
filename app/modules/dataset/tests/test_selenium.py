@@ -145,9 +145,7 @@ def test_upload_dataset_zip():
         driver.find_element(By.ID, "email").send_keys("user1@example.com")
         driver.find_element(By.ID, "password").send_keys("1234")
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "submit"))
-        ).click()
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "submit"))).click()
         wait_for_page_to_load(driver)
 
         # Navigate to "Upload from ZIP"
@@ -209,9 +207,49 @@ def test_download_all_dataset():
         close_driver(driver)
 
 
+def test_community():
+    driver = initialize_driver()
+
+    try:
+        host = get_host_for_selenium_testing()
+        driver.get(host + "/login")
+        wait_for_page_to_load(driver)
+        driver.find_element(By.LINK_TEXT, "Login").click()
+        driver.find_element(By.ID, "email").click()
+        driver.find_element(By.ID, "email").send_keys("user1@example.com")
+        driver.find_element(By.ID, "password").click()
+        driver.find_element(By.ID, "password").send_keys("1234")
+        driver.find_element(By.ID, "password").send_keys(Keys.ENTER)
+        wait_for_page_to_load(driver)
+        driver.get(host + "/communities")
+        driver.find_element(By.LINK_TEXT, "Create Community").click()
+        wait_for_page_to_load(driver)
+        driver.find_element(By.ID, "name").click()
+        driver.find_element(By.ID, "name").send_keys("Prueba")
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
+        wait_for_page_to_load(driver)
+        driver.find_element(By.LINK_TEXT, "Prueba").click()
+        driver.find_element(By.LINK_TEXT, "Edit Community").click()
+        wait_for_page_to_load(driver)
+        driver.find_element(By.ID, "name").click()
+        driver.find_element(By.ID, "name").send_keys("Prueba de Selenium")
+        wait_for_page_to_load(driver)
+        driver.find_element(By.CSS_SELECTOR, ".btn-primary").click()
+        driver.find_element(By.CSS_SELECTOR, ".btn-danger").click()
+        driver.switch_to.alert.accept()
+
+        assert driver.current_url == f"{host}/communities", "Test failed!"
+        print("Test passed!")
+
+    finally:
+        close_driver(driver)
+
+
 # Call the test functions
 test_upload_dataset()
 
 test_download_all_dataset()
 
 test_upload_dataset_zip()
+
+test_community()

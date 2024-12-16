@@ -815,8 +815,6 @@ def view_community(community_id):
     requests = community.requests.all()
     datasets = DataSetService.get_all_by_community(community_id=community_id)
 
-    print(datasets[0].created_at)
-
     return render_template('community/view_community.html',
                            community=community,
                            current_user=current_user,
@@ -894,6 +892,24 @@ def request_community(community_id):
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
     return redirect(url_for('community.view_community', community_id=community_id))
+
+
+@community_bp.route('/community/<int:community_id>/leave', methods=['POST'])
+@login_required
+def leave_community(community_id):
+    community = CommunityService.get_community_by_id(community_id)
+    if not community:
+        return "Community not found", 404
+
+    if not CommunityService.is_member(community, current_user):
+        return "Forbidden", 403
+
+    if CommunityService.is_owner(community, current_user):
+        return "Owners cannot leave the community.", 403
+
+    CommunityService.remove_member(community_id, current_user)
+    flash("You have left the community successfully.", "success")
+    return redirect(url_for('community.list_communities'))
 
 
 @community_bp.route('/community/<int:community_id>/requests/<int:user_id>/<string:action>', methods=['POST'])
