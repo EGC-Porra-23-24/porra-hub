@@ -21,6 +21,11 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Seed the database
         env:
           FLASK_ENV: production
