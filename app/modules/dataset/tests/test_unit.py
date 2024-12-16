@@ -7,7 +7,6 @@ from io import BytesIO
 from zipfile import ZipFile
 from unittest.mock import patch
 from app import create_app, db
-from app.modules import hubfile
 from app.modules.auth.models import User
 from app.modules.dataset.forms import DataSetForm
 from app.modules.dataset.models import Author, DSMetaData, DSMetrics, DataSet, PublicationType
