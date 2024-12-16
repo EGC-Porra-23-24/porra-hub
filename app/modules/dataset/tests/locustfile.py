@@ -23,26 +23,18 @@ class DatasetZipBehavior(TaskSet):
     def upload_zip(self):
         """Prueba para cargar un archivo ZIP"""
         zip_buffer = BytesIO()
-        with ZipFile(zip_buffer, 'w') as zip_file:
-            zip_file.writestr('testfile.uvl', 'contenido del archivo UVL')
+        with ZipFile(zip_buffer, "w") as zip_file:
+            zip_file.writestr("testfile.uvl", "contenido del archivo UVL")
 
         zip_buffer.seek(0)
 
         zip_filename = f"{secrets.token_hex(5)}.zip"
 
-        data = {
-            'file': (zip_buffer, zip_filename)
-        }
+        data = {"file": (zip_buffer, zip_filename)}
 
-        headers = {
-            'Content-Type': 'multipart/form-data'
-        }
+        headers = {"Content-Type": "multipart/form-data"}
 
-        response = self.client.post(
-            "/dataset/file/upload/zip",
-            files=data,
-            headers=headers
-        )
+        response = self.client.post("/dataset/file/upload/zip", files=data, headers=headers)
 
         if response.status_code == 200:
             print("Zip subido y archivos .uvl extraídos con éxito.")
@@ -53,9 +45,7 @@ class DatasetZipBehavior(TaskSet):
     def upload_invalid_zip(self):
         """Prueba para intentar cargar un archivo no ZIP"""
         response = self.client.post(
-            "/dataset/file/upload/zip",
-            data={"file": "Not a zip file"},
-            headers={"Content-Type": "multipart/form-data"}
+            "/dataset/file/upload/zip", data={"file": "Not a zip file"}, headers={"Content-Type": "multipart/form-data"}
         )
 
         if response.status_code == 400:
@@ -70,19 +60,11 @@ class DatasetGithubBehavior(TaskSet):
     def upload_github(self):
         """Prueba para cargar un archivo desde GitHub"""
         github_url = "https://github.com/jorgomde/prueba-archivos-zip-y-uvl/raw/main/prueba.zip"
-        data = {
-            'github_url': github_url
-        }
+        data = {"github_url": github_url}
 
-        headers = {
-            'Content-Type': 'application/json'
-        }
+        headers = {"Content-Type": "application/json"}
 
-        response = self.client.post(
-            "/dataset/file/upload/github",
-            json=data,
-            headers=headers
-        )
+        response = self.client.post("/dataset/file/upload/github", json=data, headers=headers)
 
         if response.status_code == 200:
             print("Archivo de GitHub subido y procesado con éxito.")
@@ -93,19 +75,11 @@ class DatasetGithubBehavior(TaskSet):
     def upload_invalid_github_url(self):
         """Prueba para intentar cargar un archivo con una URL de GitHub no válida"""
         invalid_github_url = "https://github.com/jorgomde/invalid-repo/raw/main/invalid-file.zip"
-        data = {
-            'github_url': invalid_github_url
-        }
+        data = {"github_url": invalid_github_url}
 
-        headers = {
-            'Content-Type': 'application/json'
-        }
+        headers = {"Content-Type": "application/json"}
 
-        response = self.client.post(
-            "/dataset/file/upload/github",
-            json=data,
-            headers=headers
-        )
+        response = self.client.post("/dataset/file/upload/github", json=data, headers=headers)
 
         if response.status_code == 400:
             print("Error esperado: URL de GitHub no válida.")
@@ -126,7 +100,7 @@ class DatsetDownloadAllBehavior(TaskSet):
 
             # Guardamos el archivo ZIP descargado
             zip_filename = "all_datasets.zip"
-            with open(zip_filename, 'wb') as f:
+            with open(zip_filename, "wb") as f:
                 f.write(response.content)
             print(f"Archivo guardado como {zip_filename}")
 
@@ -139,7 +113,7 @@ class DatsetDownloadAllBehavior(TaskSet):
     def verify_zip_content(self, zip_filename):
         # Verificar que el archivo ZIP no esté dañado
         try:
-            with zipfile.ZipFile(zip_filename, 'r') as zipf:
+            with zipfile.ZipFile(zip_filename, "r") as zipf:
                 # Comprobamos si el archivo ZIP está dañado
                 zipf.testzip()  # Si no lanza error, el ZIP es válido
                 print(f"El archivo ZIP {zip_filename} es válido.")
