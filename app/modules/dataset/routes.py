@@ -37,7 +37,7 @@ from app.modules.dataset.services import (
     DOIMappingService,
     CommunityService
 )
-from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter, JSONWriter, AFMWriter
+from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
 from app.modules.hubfile.services import HubfileService
 from app.modules.zenodo.services import ZenodoService
@@ -613,6 +613,7 @@ def download_all_dataset():
 
     files_added = False
 
+    # Crear un archivo ZIP donde se guardarán todos los archivos convertidos
     with ZipFile(zip_path, "w") as zipf:
         datasets = dataset_service.get_all()
 
@@ -643,63 +644,54 @@ def download_all_dataset():
                         print(f"Error al obtener Hubfile para {file.name}: {str(e)}")
                         continue
 
-                    # Convertir cada archivo a los formatos deseados
-                    for format in ["glencoe", "dimacs", "splot", "json", "afm", "uvl"]:
+                    # Convertir cada archivo a los formatos deseados y agregarlo al ZIP
+                    for format in ["glencoe", "dimacs", "splot", "uvl"]:
                         content = ""
                         name = f"{hubfile.name}_{format}.txt"
+                        print(name)
 
                         # Realizar la conversión según el formato
-                        if format == "glencoe":
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
-                            fm = UVLReader(hubfile.get_path()).transform()
-                            GlencoeWriter(temp_file.name, fm).transform()
-                            with open(temp_file.name, "r") as new_format_file:
-                                content = new_format_file.read()
-                            name = f"{hubfile.name}_glencoe.txt"
-                        elif format == "dimacs":
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
-                            fm = UVLReader(hubfile.get_path()).transform()
-                            sat = FmToPysat(fm).transform()
-                            DimacsWriter(temp_file.name, sat).transform()
-                            with open(temp_file.name, "r") as new_format_file:
-                                content = new_format_file.read()
-                            name = f"{hubfile.name}_cnf.txt"
-                        elif format == "splot":
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
-                            fm = UVLReader(hubfile.get_path()).transform()
-                            SPLOTWriter(temp_file.name, fm).transform()
-                            with open(temp_file.name, "r") as new_format_file:
-                                content = new_format_file.read()
-                            name = f"{hubfile.name}_splot.txt"
-                        elif format == "json":
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
-                            fm = UVLReader(hubfile.get_path()).transform()
-                            JSONWriter(temp_file.name, fm).transform()
-                            with open(temp_file.name, "r") as new_format_file:
-                                content = new_format_file.read()
-                            name = f"{hubfile.name}_json.txt"
-                        elif format == "afm":
-                            temp_file = tempfile.NamedTemporaryFile(suffix='.afm', delete=False)
-                            fm = UVLReader(hubfile.get_path()).transform()
-                            AFMWriter(temp_file.name, fm).transform()
-                            with open(temp_file.name, "r") as new_format_file:
-                                content = new_format_file.read()
-                            name = f"{hubfile.name}_afm.txt"
-                        elif format == "uvl":
-                            # Para UVL no hacemos transformación adicional, solo agregamos el archivo original
-                            content = open(full_path, "r").read()
-                            name = f"{file.name}_uvl.txt"
+                        try:
+                            if format == "glencoe":
+                                temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                                fm = UVLReader(hubfile.get_path()).transform()
+                                GlencoeWriter(temp_file.name, fm).transform()
+                                with open(temp_file.name, "r") as new_format_file:
+                                    content = new_format_file.read()
+                                name = f"{hubfile.name}_glencoe.txt"
+                            elif format == "dimacs":
+                                temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
+                                fm = UVLReader(hubfile.get_path()).transform()
+                                sat = FmToPysat(fm).transform()
+                                DimacsWriter(temp_file.name, sat).transform()
+                                with open(temp_file.name, "r") as new_format_file:
+                                    content = new_format_file.read()
+                                name = f"{hubfile.name}_cnf.txt"
+                            elif format == "splot":
+                                temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
+                                fm = UVLReader(hubfile.get_path()).transform()
+                                SPLOTWriter(temp_file.name, fm).transform()
+                                with open(temp_file.name, "r") as new_format_file:
+                                    content = new_format_file.read()
+                                name = f"{hubfile.name}_splot.txt"
+                            elif format == "uvl":
+                                # Para UVL no hacemos transformación adicional, solo agregamos el archivo original
+                                content = open(full_path, "r").read()
+                                name = f"{file.name}.txt"
 
-                        # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
-                        zipf.writestr(os.path.join(dataset_folder, name), content)
-                        files_added = True  # Se agregaron archivos al ZIP
+                            # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
+                            zipf.writestr(os.path.join(dataset_folder, name), content)
+                            files_added = True  # Se agregaron archivos al ZIP
+
+                        except Exception as e:
+                            print(f"Error al procesar el archivo {file.name} en formato {format}: {str(e)}")
+                            continue
 
             else:
                 print(f"Archivo no encontrado para el dataset {dataset.id}")
 
     # Si no se agregaron archivos al ZIP, devolvemos un mensaje de error, pero no un JSON.
     if not files_added:
-        # El archivo ZIP no se crea si no se agregan archivos, solo respondemos con un mensaje.
         return make_response(
             jsonify({"error": "No se encontraron archivos disponibles para descargar"}), 404
         )
@@ -724,10 +716,9 @@ def download_all_dataset():
     ).first()
 
     if not existing_record:
-        # Registrar la descarga en la base de datos
         DSDownloadRecordService().create(
             user_id=current_user.id if current_user.is_authenticated else None,
-            dataset_id=None,  # No es necesario asociar con un dataset en particular
+            dataset_id=None,
             download_date=datetime.now(timezone.utc),
             download_cookie=user_cookie,
         )
