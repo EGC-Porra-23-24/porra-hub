@@ -13,20 +13,20 @@ features
         optional
             "Data Storage"
             "Media Player"
-    Chato
-        mandatory
-            Connectiono
-                alternative
-                    "Peer 2 Peero"
-                    Servero
-            Messageso
-                or
-                    Texto
-                    Videoo
-                    Audioo
-        optional
-            "Data Storageo"
-            "Media Playero"
+            Chato
+                mandatory
+                    Connectiono
+                        alternative
+                            "Peer 2 Peero"
+                            Servero
+                    Messageso
+                        or
+                            Texto
+                            Videoo
+                            Audioo
+                optional
+                    "Data Storageo"
+                    "Media Playero"
 
 constraints
     Server => "Data Storage"
