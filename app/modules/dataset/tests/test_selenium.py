@@ -239,7 +239,6 @@ def test_download_all_dataset_logged_in():
 
     finally:
         close_driver(driver)
-        
 
 
 # Call the test functions
