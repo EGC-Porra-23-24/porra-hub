@@ -24,9 +24,7 @@ from flask_login import login_required, current_user
 import requests
 
 from app.modules.dataset.forms import DataSetForm
-from app.modules.dataset.models import (
-    DSDownloadRecord
-)
+from app.modules.dataset.models import DSDownloadRecord
 from app.modules.dataset import dataset_bp
 from app.modules.dataset.services import (
     AuthorService,
@@ -35,7 +33,7 @@ from app.modules.dataset.services import (
     DSViewRecordService,
     DataSetService,
     DOIMappingService,
-    CommunityService
+    CommunityService,
 )
 from flamapy.metamodels.fm_metamodel.transformations import UVLReader, GlencoeWriter, SPLOTWriter
 from flamapy.metamodels.pysat_metamodel.transformations import FmToPysat, DimacsWriter
@@ -89,17 +87,13 @@ def create_dataset():
             except Exception as exc:
                 data = {}
                 fakenodo_response_json = {}
-                logger.exception(
-                    f"Exception while creating dataset in Zenodo: {exc}"
-                )
+                logger.exception(f"Exception while creating dataset in Zenodo: {exc}")
 
             if data.get("conceptrecid"):
                 deposition_id = data.get("id")
 
                 # Update dataset with deposition id in Fakenodo
-                dataset_service.update_dsmetadata(
-                    dataset.ds_meta_data_id, deposition_id=deposition_id
-                )
+                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
 
                 try:
                     # Iterate for each feature model (one feature model = one request to Fakenodo)
@@ -111,14 +105,9 @@ def create_dataset():
 
                     # Update DOI
                     deposition_doi = fakenodo_service.get_doi(deposition_id)
-                    dataset_service.update_dsmetadata(
-                        dataset.ds_meta_data_id, dataset_doi=deposition_doi
-                    )
+                    dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
                 except Exception as e:
-                    msg = (
-                        f"It has not been possible to upload feature models in "
-                        f"Fakenodo and update the DOI: {e}"
-                    )
+                    msg = f"It has not been possible to upload feature models in " f"Fakenodo and update the DOI: {e}"
                     return jsonify({"message": msg}), 200
         else:
             try:
@@ -128,17 +117,13 @@ def create_dataset():
             except Exception as exc:
                 data = {}
                 zenodo_response_json = {}
-                logger.exception(
-                    f"Exception while creating dataset in Zenodo: {exc}"
-                )
+                logger.exception(f"Exception while creating dataset in Zenodo: {exc}")
 
             if data.get("conceptrecid"):
                 deposition_id = data.get("id")
 
                 # Update dataset with deposition id in Zenodo
-                dataset_service.update_dsmetadata(
-                    dataset.ds_meta_data_id, deposition_id=deposition_id
-                )
+                dataset_service.update_dsmetadata(dataset.ds_meta_data_id, deposition_id=deposition_id)
 
                 try:
                     # Iterate for each feature model (one feature model = one request to Zenodo)
@@ -150,14 +135,9 @@ def create_dataset():
 
                     # Update DOI
                     deposition_doi = zenodo_service.get_doi(deposition_id)
-                    dataset_service.update_dsmetadata(
-                        dataset.ds_meta_data_id, dataset_doi=deposition_doi
-                    )
+                    dataset_service.update_dsmetadata(dataset.ds_meta_data_id, dataset_doi=deposition_doi)
                 except Exception as e:
-                    msg = (
-                        f"It has not been possible to upload feature models in "
-                        f"Zenodo and update the DOI: {e}"
-                    )
+                    msg = f"It has not been possible to upload feature models in " f"Zenodo and update the DOI: {e}"
                     return jsonify({"message": msg}), 200
 
         # Delete temp folder
@@ -201,9 +181,7 @@ def upload():
         # Generate unique filename (by recursion)
         base_name, extension = os.path.splitext(file.filename)
         i = 1
-        while os.path.exists(
-            os.path.join(temp_folder, f"{base_name} ({i}){extension}")
-        ):
+        while os.path.exists(os.path.join(temp_folder, f"{base_name} ({i}){extension}")):
             i += 1
         new_filename = f"{base_name} ({i}){extension}"
         file_path = os.path.join(temp_folder, new_filename)
@@ -229,12 +207,12 @@ def upload():
 @dataset_bp.route("/dataset/file/upload/github", methods=["POST", "GET"])
 @login_required
 def upload_from_github():
-    github_url = request.json.get('url')
+    github_url = request.json.get("url")
     if not github_url:
         return jsonify({"error": "GitHub URL is required"}), 400
 
     # Cambiar la URL a la versión raw
-    if 'github.com' in github_url:
+    if "github.com" in github_url:
         raw_url = github_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
     else:
         return jsonify({"error": "Invalid GitHub URL"}), 400
@@ -244,9 +222,9 @@ def upload_from_github():
         response = requests.get(raw_url, timeout=15)
         response.raise_for_status()  # Si la respuesta es mala (404, 500), lanza una excepción
 
-        file_name = raw_url.split('/')[-1]
-        file_type = response.headers['Content-Type']
-        file_size = response.headers['Content-Length']
+        file_name = raw_url.split("/")[-1]
+        file_type = response.headers["Content-Type"]
+        file_size = response.headers["Content-Length"]
 
         # Obtener la carpeta temporal específica para el usuario actual
         temp_folder = current_user.temp_folder()
@@ -268,15 +246,15 @@ def upload_from_github():
             file_path = os.path.join(temp_folder, file_name)
 
         # Guardar el archivo descargado en la carpeta temporal
-        with open(file_path, 'wb') as temp_file:
+        with open(file_path, "wb") as temp_file:
             temp_file.write(response.content)
 
         # Procesar si es un ZIP
-        if file_name.endswith('.zip'):
+        if file_name.endswith(".zip"):
             extracted_files = []
-            with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            with zipfile.ZipFile(file_path, "r") as zip_ref:
                 for zip_info in zip_ref.infolist():
-                    if zip_info.filename.endswith('.uvl'):  # Excluir directorios
+                    if zip_info.filename.endswith(".uvl"):  # Excluir directorios
                         extracted_filename = os.path.basename(zip_info.filename)
                         extracted_path = os.path.join(temp_folder, extracted_filename)
 
@@ -286,32 +264,36 @@ def upload_from_github():
                             extracted_path = os.path.join(temp_folder, f"{base_name} ({i}){extension}")
                             i += 1
 
-                        with zip_ref.open(zip_info) as source, open(extracted_path, 'wb') as target:
+                        with zip_ref.open(zip_info) as source, open(extracted_path, "wb") as target:
                             target.write(source.read())
 
-                    # Agregar el nombre del archivo extraído a la lista de archivos
+                        # Agregar el nombre del archivo extraído a la lista de archivos
                         extracted_files.append(extracted_filename)
 
-            return jsonify({
-                "message": "ZIP file uploaded and extracted successfully",
-                "fileName": file_name,
-                "fileType": file_type,
-                "extracted_files": extracted_files,
-                "fileSize": file_size
-            })
+            return jsonify(
+                {
+                    "message": "ZIP file uploaded and extracted successfully",
+                    "fileName": file_name,
+                    "fileType": file_type,
+                    "extracted_files": extracted_files,
+                    "fileSize": file_size,
+                }
+            )
 
         # Si el archivo es un uvl o cualquier otro archivo que no sea zip
-        elif file_name.endswith('.uvl'):
+        elif file_name.endswith(".uvl"):
             uvl_file_path = os.path.join(temp_folder, file_name)
-            with open(uvl_file_path, 'wb') as uvl_file:
+            with open(uvl_file_path, "wb") as uvl_file:
                 uvl_file.write(response.content)
 
-            return jsonify({
-                "message": "UVL file uploaded and validated successfully",
-                "fileName": file_name,
-                "filePath": uvl_file_path,  # Ruta del archivo UVL
-                "fileSize": file_size
-            })
+            return jsonify(
+                {
+                    "message": "UVL file uploaded and validated successfully",
+                    "fileName": file_name,
+                    "filePath": uvl_file_path,  # Ruta del archivo UVL
+                    "fileSize": file_size,
+                }
+            )
 
         else:
             return jsonify({"error": "Unsupported file type"}), 400
@@ -340,9 +322,7 @@ def upload_from_zip():
     if os.path.exists(file_path):
         base_name, extension = os.path.splitext(file.filename)
         i = 1
-        while os.path.exists(
-            os.path.join(temp_folder, f"{base_name} ({i}){extension}")
-        ):
+        while os.path.exists(os.path.join(temp_folder, f"{base_name} ({i}){extension}")):
             i += 1
         new_filename = f"{base_name} ({i}){extension}"
         file_path = os.path.join(temp_folder, new_filename)
@@ -357,7 +337,7 @@ def upload_from_zip():
     # Extraer archivos .uvl del zip
     extracted_files = []
     try:
-        with ZipFile(file_path, 'r') as zip_ref:
+        with ZipFile(file_path, "r") as zip_ref:
             for zip_info in zip_ref.infolist():
                 if zip_info.filename.endswith(".uvl"):
                     extracted_filename = os.path.basename(zip_info.filename)
@@ -371,7 +351,7 @@ def upload_from_zip():
                         i += 1
 
                     # Extraer el archivo y guardarlo en temp_folder
-                    with zip_ref.open(zip_info) as source, open(extracted_path, 'wb') as target:
+                    with zip_ref.open(zip_info) as source, open(extracted_path, "wb") as target:
                         target.write(source.read())
 
                     # Agregar el nombre del archivo extraído a la lista de archivos
@@ -554,16 +534,12 @@ def download_dataset(dataset_id):
 
                 zipf.write(
                     full_path,
-                    arcname=os.path.join(
-                        os.path.basename(zip_path[:-4]), relative_path
-                    ),
+                    arcname=os.path.join(os.path.basename(zip_path[:-4]), relative_path),
                 )
 
     user_cookie = request.cookies.get("download_cookie")
     if not user_cookie:
-        user_cookie = str(
-            uuid.uuid4()
-        )  # Generate a new unique identifier if it does not exist
+        user_cookie = str(uuid.uuid4())  # Generate a new unique identifier if it does not exist
         # Save the cookie to the user's browser
         resp = make_response(
             send_from_directory(
@@ -586,7 +562,7 @@ def download_dataset(dataset_id):
     existing_record = DSDownloadRecord.query.filter_by(
         user_id=current_user.id if current_user.is_authenticated else None,
         dataset_id=dataset_id,
-        download_cookie=user_cookie
+        download_cookie=user_cookie,
     ).first()
 
     if not existing_record:
@@ -653,14 +629,14 @@ def download_all_dataset():
                         # Realizar la conversión según el formato
                         try:
                             if format == "glencoe":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+                                temp_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
                                 fm = UVLReader(hubfile.get_path()).transform()
                                 GlencoeWriter(temp_file.name, fm).transform()
                                 with open(temp_file.name, "r") as new_format_file:
                                     content = new_format_file.read()
                                 name = f"{hubfile.name}_glencoe.txt"
                             elif format == "dimacs":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.cnf', delete=False)
+                                temp_file = tempfile.NamedTemporaryFile(suffix=".cnf", delete=False)
                                 fm = UVLReader(hubfile.get_path()).transform()
                                 sat = FmToPysat(fm).transform()
                                 DimacsWriter(temp_file.name, sat).transform()
@@ -668,7 +644,7 @@ def download_all_dataset():
                                     content = new_format_file.read()
                                 name = f"{hubfile.name}_cnf.txt"
                             elif format == "splot":
-                                temp_file = tempfile.NamedTemporaryFile(suffix='.splx', delete=False)
+                                temp_file = tempfile.NamedTemporaryFile(suffix=".splx", delete=False)
                                 fm = UVLReader(hubfile.get_path()).transform()
                                 SPLOTWriter(temp_file.name, fm).transform()
                                 with open(temp_file.name, "r") as new_format_file:
@@ -692,18 +668,11 @@ def download_all_dataset():
 
     # Si no se agregaron archivos al ZIP, devolvemos un mensaje de error, pero no un JSON.
     if not files_added:
-        return make_response(
-            jsonify({"error": "No se encontraron archivos disponibles para descargar"}), 404
-        )
+        return make_response(jsonify({"error": "No se encontraron archivos disponibles para descargar"}), 404)
 
     # Responder con el archivo ZIP
     resp = make_response(
-        send_from_directory(
-            temp_dir,
-            "all_datasets.zip",
-            as_attachment=True,
-            mimetype="application/zip"
-        )
+        send_from_directory(temp_dir, "all_datasets.zip", as_attachment=True, mimetype="application/zip")
     )
 
     # Establecer la cookie "download_cookie" para que no se genere nuevamente
@@ -711,8 +680,7 @@ def download_all_dataset():
 
     # Registrar la descarga en la base de datos
     existing_record = DSDownloadRecord.query.filter_by(
-        user_id=current_user.id if current_user.is_authenticated else None,
-        download_cookie=user_cookie
+        user_id=current_user.id if current_user.is_authenticated else None, download_cookie=user_cookie
     ).first()
 
     if not existing_record:
@@ -733,7 +701,7 @@ def subdomain_index(doi):
     new_doi = doi_mapping_service.get_new_doi(doi)
     if new_doi:
         # Redirect to the same path with the new DOI
-        return redirect(url_for('dataset.subdomain_index', doi=new_doi), code=302)
+        return redirect(url_for("dataset.subdomain_index", doi=new_doi), code=302)
 
     # Try to search the dataset by the provided DOI (which should already be the new one)
     ds_meta_data = dsmetadata_service.filter_by_doi(doi)
@@ -765,36 +733,37 @@ def get_unsynchronized_dataset(dataset_id):
     return render_template("dataset/view_dataset.html", dataset=dataset)
 
 
-community_bp = Blueprint('community', __name__)
+community_bp = Blueprint("community", __name__)
 community_service = CommunityService()
 
 
-@community_bp.route('/communities', methods=['GET'])
+@community_bp.route("/communities", methods=["GET"])
 @login_required
 def list_communities():
     communities = CommunityService.list_communities()
     my_communities = CommunityService.get_communities_by_member(current_user)
-    return render_template('community/list_communities.html',
-                           my_communities=my_communities,
-                           communities=communities,
-                           current_user=current_user,
-                           is_owner=CommunityService.is_owner,
-                           is_member=CommunityService.is_member,
-                           is_request=CommunityService.is_request)
+    return render_template(
+        "community/list_communities.html",
+        my_communities=my_communities,
+        communities=communities,
+        current_user=current_user,
+        is_owner=CommunityService.is_owner,
+        is_member=CommunityService.is_member,
+        is_request=CommunityService.is_request,
+    )
 
 
-@community_bp.route('/communities/search', methods=['GET'])
+@community_bp.route("/communities/search", methods=["GET"])
 @login_required
 def search_communities():
-    query = request.args.get('query', '').strip()
+    query = request.args.get("query", "").strip()
     communities = CommunityService.search_communities(query)
-    return render_template('community/search_results.html',
-                           query=query,
-                           communities=communities,
-                           current_user=current_user)
+    return render_template(
+        "community/search_results.html", query=query, communities=communities, current_user=current_user
+    )
 
 
-@community_bp.route('/community/<int:community_id>', methods=['GET'])
+@community_bp.route("/community/<int:community_id>", methods=["GET"])
 @login_required
 def view_community(community_id):
     community = CommunityService.get_community_by_id(community_id)
@@ -806,37 +775,39 @@ def view_community(community_id):
     requests = community.requests.all()
     datasets = DataSetService.get_all_by_community(community_id=community_id)
 
-    return render_template('community/view_community.html',
-                           community=community,
-                           current_user=current_user,
-                           owners=owners,
-                           members=members,
-                           requests=requests,
-                           datasets=datasets,
-                           is_owner=CommunityService.is_owner,
-                           is_member=CommunityService.is_member,
-                           is_request=CommunityService.is_request)
+    return render_template(
+        "community/view_community.html",
+        community=community,
+        current_user=current_user,
+        owners=owners,
+        members=members,
+        requests=requests,
+        datasets=datasets,
+        is_owner=CommunityService.is_owner,
+        is_member=CommunityService.is_member,
+        is_request=CommunityService.is_request,
+    )
 
 
-@community_bp.route('/community/create', methods=['GET'])
+@community_bp.route("/community/create", methods=["GET"])
 @login_required
 def create_community_page():
-    return render_template('community/create_community.html')
+    return render_template("community/create_community.html")
 
 
-@community_bp.route('/community/create', methods=['POST'])
+@community_bp.route("/community/create", methods=["POST"])
 @login_required
 def create_community():
-    name = request.form.get('name')
+    name = request.form.get("name")
     if not name:
-        flash('Community name is required', 'danger')
-        return redirect(url_for('community.create_community_page'))
+        flash("Community name is required", "danger")
+        return redirect(url_for("community.create_community_page"))
     CommunityService.create_community(name, current_user)
-    flash('Community created successfully!', 'success')
-    return redirect(url_for('community.list_communities'))
+    flash("Community created successfully!", "success")
+    return redirect(url_for("community.list_communities"))
 
 
-@community_bp.route('/community/<int:community_id>/edit', methods=['GET'])
+@community_bp.route("/community/<int:community_id>/edit", methods=["GET"])
 @login_required
 def edit_community_page(community_id):
     community = CommunityService.get_community_by_id(community_id)
@@ -845,10 +816,10 @@ def edit_community_page(community_id):
     if not CommunityService.is_owner(community, current_user):
         return "Forbidden", 403
 
-    return render_template('community/edit_community.html', community=community)
+    return render_template("community/edit_community.html", community=community)
 
 
-@community_bp.route('/community/<int:community_id>/edit', methods=['POST'])
+@community_bp.route("/community/<int:community_id>/edit", methods=["POST"])
 @login_required
 def edit_community(community_id):
     community = CommunityService.get_community_by_id(community_id)
@@ -856,13 +827,13 @@ def edit_community(community_id):
         return "Community not found", 404
     if not CommunityService.is_owner(community, current_user):
         return "Forbidden", 403
-    new_name = request.form.get('name')
+    new_name = request.form.get("name")
     updated_community = CommunityService.update_community(community_id, new_name)
 
-    return redirect(url_for('community.view_community', community_id=updated_community.id))
+    return redirect(url_for("community.view_community", community_id=updated_community.id))
 
 
-@community_bp.route('/community/<int:community_id>/delete', methods=['POST'])
+@community_bp.route("/community/<int:community_id>/delete", methods=["POST"])
 @login_required
 def delete_community(community_id):
     community = CommunityService.get_community_by_id(community_id)
@@ -871,21 +842,21 @@ def delete_community(community_id):
     if not CommunityService.is_owner(community, current_user):
         return "Forbidden", 403
     CommunityService.remove_community(community_id)
-    return redirect(url_for('community.list_communities'))
+    return redirect(url_for("community.list_communities"))
 
 
-@community_bp.route('/community/<int:community_id>/request', methods=['POST'])
+@community_bp.route("/community/<int:community_id>/request", methods=["POST"])
 @login_required
 def request_community(community_id):
     try:
         CommunityService.request_community(community_id, current_user)
-        flash('Request to join the community has been sent successfully.', 'success')
+        flash("Request to join the community has been sent successfully.", "success")
     except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-    return redirect(url_for('community.view_community', community_id=community_id))
+        flash(f"Error: {str(e)}", "danger")
+    return redirect(url_for("community.view_community", community_id=community_id))
 
 
-@community_bp.route('/community/<int:community_id>/leave', methods=['POST'])
+@community_bp.route("/community/<int:community_id>/leave", methods=["POST"])
 @login_required
 def leave_community(community_id):
     community = CommunityService.get_community_by_id(community_id)
@@ -900,25 +871,25 @@ def leave_community(community_id):
 
     CommunityService.remove_member(community_id, current_user)
     flash("You have left the community successfully.", "success")
-    return redirect(url_for('community.list_communities'))
+    return redirect(url_for("community.list_communities"))
 
 
-@community_bp.route('/community/<int:community_id>/requests/<int:user_id>/<string:action>', methods=['POST'])
+@community_bp.route("/community/<int:community_id>/requests/<int:user_id>/<string:action>", methods=["POST"])
 @login_required
 def handle_request(community_id, user_id, action):
     community = CommunityService.get_community_by_id(community_id)
     if not community or not CommunityService.is_owner(community, current_user):
-        flash('You do not have permission to perform this action.', 'danger')
-        return redirect(url_for('community.view_community', community_id=community_id))
+        flash("You do not have permission to perform this action.", "danger")
+        return redirect(url_for("community.view_community", community_id=community_id))
 
     if action not in ["accept", "reject"]:
-        flash('Invalid action.', 'danger')
-        return redirect(url_for('community.view_community', community_id=community_id))
+        flash("Invalid action.", "danger")
+        return redirect(url_for("community.view_community", community_id=community_id))
 
     success = CommunityService.handle_request(community_id, user_id, action)
     if success:
-        flash('Request handled successfully.', 'success')
+        flash("Request handled successfully.", "success")
     else:
-        flash('Failed to handle the request.', 'danger')
+        flash("Failed to handle the request.", "danger")
 
-    return redirect(url_for('community.view_community', community_id=community_id))
+    return redirect(url_for("community.view_community", community_id=community_id))
