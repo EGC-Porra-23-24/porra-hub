@@ -624,8 +624,6 @@ def download_all_dataset():
                     for format in ["glencoe", "dimacs", "splot", "uvl"]:
                         content = ""
                         name = f"{hubfile.name}_{format}.txt"
-                        print(name)
-
                         # Realizar la conversión según el formato
                         try:
                             if format == "glencoe":
