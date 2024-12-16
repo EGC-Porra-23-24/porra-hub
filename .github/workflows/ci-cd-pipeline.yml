@@ -26,10 +26,6 @@ jobs:
     secrets:
       CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }} 
 
-  test:
-    name: Test python version
-    uses: ./.github/workflows/python.yml
-
   validate-main-branch:
     name: Validate Main Branch
     needs: tests
