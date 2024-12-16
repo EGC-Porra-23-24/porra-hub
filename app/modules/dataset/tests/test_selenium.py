@@ -199,9 +199,7 @@ def test_upload_dataset_github():
         driver.find_element(By.ID, "email").send_keys("user1@example.com")
         driver.find_element(By.ID, "password").send_keys("1234")
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "submit"))
-        ).click()
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "submit"))).click()
         wait_for_page_to_load(driver)
 
         driver.get(f"{host}/dataset/upload/github")
