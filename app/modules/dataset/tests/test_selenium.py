@@ -223,7 +223,6 @@ def test_community():
         driver.find_element(By.ID, "password").send_keys("1234")
         driver.find_element(By.ID, "password").send_keys(Keys.ENTER)
         wait_for_page_to_load(driver)
-#        driver.find_element(By.CSS_SELECTOR, ".sidebar-item:nth-child(8) .align-middle:nth-child(2)").click()
         driver.get(host + "/communities")
         driver.find_element(By.LINK_TEXT, "Create Community").click()
         wait_for_page_to_load(driver)
