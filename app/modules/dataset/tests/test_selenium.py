@@ -199,9 +199,7 @@ def test_upload_dataset_github():
         driver.find_element(By.ID, "email").send_keys("user1@example.com")
         driver.find_element(By.ID, "password").send_keys("1234")
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "submit"))
-        ).click()
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "submit"))).click()
         wait_for_page_to_load(driver)
 
         driver.get(f"{host}/dataset/upload/github")
@@ -263,6 +261,38 @@ def test_download_all_dataset():
         close_driver(driver)
 
 
+def test_download_all_dataset_logged_in():
+    driver = initialize_driver()
+
+    try:
+
+        host = get_host_for_selenium_testing()
+        # Open the login page
+        driver.get(f"{host}/login")
+        wait_for_page_to_load(driver)
+
+        driver.find_element(By.ID, "email").send_keys("user1@example.com")
+        driver.find_element(By.ID, "password").send_keys("1234")
+
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "submit"))).click()
+        wait_for_page_to_load(driver)
+
+        driver.get(f"{host}/")
+        time.sleep(2)
+
+        # Navigate to "Download All"
+        driver.get(f"{host}/dataset/download/all")
+        time.sleep(2)
+
+        wait_for_page_to_load(driver)
+        wait_for_page_to_load(driver)
+
+        print("Test passed!")
+
+    finally:
+        close_driver(driver)
+
+
 def test_community():
     driver = initialize_driver()
 
@@ -305,6 +335,8 @@ def test_community():
 test_upload_dataset()
 
 test_download_all_dataset()
+
+test_download_all_dataset_logged_in()
 
 test_upload_dataset_github()
 
