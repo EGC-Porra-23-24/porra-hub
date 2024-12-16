@@ -1,7 +1,8 @@
 import pytest
 from flask import url_for
 from app import create_app, db
-from app.modules.auth.models import User, Community
+from app.modules.auth.models import User
+from app.modules.dataset.models import Community
 from flask_login import login_user, logout_user
 from app.modules.dataset.services import CommunityService, DataSetService
 from app.modules.profile.models import UserProfile
