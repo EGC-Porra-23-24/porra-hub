@@ -632,7 +632,7 @@ def download_all_dataset():
                                 GlencoeWriter(temp_file.name, fm).transform()
                                 with open(temp_file.name, "r") as new_format_file:
                                     content = new_format_file.read()
-                                name = f"{hubfile.name}_glencoe.txt"
+                                name = f"{hubfile.name}.glencoe"
                             elif format == "dimacs":
                                 temp_file = tempfile.NamedTemporaryFile(suffix=".cnf", delete=False)
                                 fm = UVLReader(hubfile.get_path()).transform()
@@ -640,18 +640,18 @@ def download_all_dataset():
                                 DimacsWriter(temp_file.name, sat).transform()
                                 with open(temp_file.name, "r") as new_format_file:
                                     content = new_format_file.read()
-                                name = f"{hubfile.name}_cnf.txt"
+                                name = f"{hubfile.name}.cnf"
                             elif format == "splot":
                                 temp_file = tempfile.NamedTemporaryFile(suffix=".splx", delete=False)
                                 fm = UVLReader(hubfile.get_path()).transform()
                                 SPLOTWriter(temp_file.name, fm).transform()
                                 with open(temp_file.name, "r") as new_format_file:
                                     content = new_format_file.read()
-                                name = f"{hubfile.name}_splot.txt"
+                                name = f"{hubfile.name}.splot"
                             elif format == "uvl":
                                 # Para UVL no hacemos transformación adicional, solo agregamos el archivo original
                                 content = open(full_path, "r").read()
-                                name = f"{file.name}.txt"
+                                name = f"{file.name}"
 
                             # Agregar el archivo convertido al ZIP en la carpeta correspondiente al dataset
                             zipf.writestr(os.path.join(dataset_folder, name), content)
